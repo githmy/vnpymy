@@ -1,0 +1,11 @@
+{
+    "class_name": "AtrRsiStrategy",
+    "vt_symbol": "IF88.CFFEX",
+    "interval": "1m",
+    "rate": 2.5e-05,
+    "slippage": 0.2,
+    "size": 300.0,
+    "pricetick": 0.2,
+    "capital": 1000000.0,
+    "inverse": false
+}

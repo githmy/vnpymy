@@ -1,0 +1,9 @@
+{
+    "": {
+        "class_name": "TestStrategy",
+        "vt_symbol": "",
+        "setting": {
+            "test_trigger": 10
+        }
+    }
+}

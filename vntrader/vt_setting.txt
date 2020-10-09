@@ -1,0 +1,42 @@
+{
+  //GUI界面字体
+  //日志输出
+  //邮件通知
+  //数据服务（RQData）
+  //数据库
+    "font.family": "Arial",
+    "font.size": 12,
+
+    "log.active": True,
+    "log.level": CRITICAL,
+    "log.console": True,
+    "log.file": True,
+
+    "email.server": "smtp.qq.com",
+    "email.port": 465,
+    "email.username": "",
+    "email.password": "",
+    "email.sender": "",
+    "email.receiver": "",
+
+    "data.source": "tushare",
+    //"data.source": "rice",
+    "tushare.token": "041bb3b8278d6f7d2de03039e47b302b85b817f8cee515dca24b509b",
+    "rqdata.username": "",
+    "rqdata.password": "",
+
+  "database.host": "localhost",
+  "database.database": "vnpy",
+
+  "database.driver": "mysql",
+  "database.port": 3306,
+  "database.user": "root",
+  "database.password": "123",
+
+  "database.driver": "mongodb",
+  "database.port": 27017,
+  "database.user": "",
+  "database.password": ""
+
+    "huafu.data_source": ""  # 华富资产自建数据源
+}
