@@ -20,7 +20,7 @@ dist
 *.local
 
 # vn.py
-.vntrader
+.vntraderxx
 
 # Visual Studio intermediate files
 *.exp
