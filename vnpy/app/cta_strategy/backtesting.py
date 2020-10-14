@@ -774,7 +774,7 @@ class BacktestingEngine:
 
     def cross_limit_order(self):
         """
-        Cross limit order with last bar/tick data.
+        Cross limit order with last bar/tick data. 限价单，小于价格成交
         """
         if self.mode == BacktestingMode.BAR:
             long_cross_price = self.bar.low_price
@@ -846,7 +846,7 @@ class BacktestingEngine:
 
     def cross_stop_order(self):
         """
-        Cross stop order with last bar/tick data.
+        Cross stop order with last bar/tick data. 停止单，突破趋势成交。
         """
         if self.mode == BacktestingMode.BAR:
             long_cross_price = self.bar.high_price

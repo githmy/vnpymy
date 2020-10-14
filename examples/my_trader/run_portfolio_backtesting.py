@@ -36,9 +36,11 @@ def show_portafolio(df):
 df1 = run_backtesting(
     strategy_class=AtrRsiStrategy,
     setting={},
-    vt_symbol="IF88.CFFEX",
-    interval="1m",
-    start=datetime(2019, 1, 1),
+    vt_symbol="603999.SSE",
+    interval="d",
+    # vt_symbol="IF88.CFFEX",
+    # interval="1m",
+    start=datetime(2014, 1, 1),
     end=datetime(2019, 4, 30),
     rate=0.3 / 10000,
     slippage=0.2,
@@ -48,11 +50,14 @@ df1 = run_backtesting(
 )
 
 df2 = run_backtesting(
-    strategy_class=BollChannelStrategy,
+    # strategy_class=BollChannelStrategy,
+    strategy_class=AtrRsiStrategy,
     setting={'fixed_size': 16},
-    vt_symbol="RB88.SHFE",
-    interval="1m",
-    start=datetime(2019, 1, 1),
+    vt_symbol="603996.SSE",
+    interval="d",
+    # vt_symbol="RB88.SHFE",
+    # interval="1m",
+    start=datetime(2014, 1, 1),
     end=datetime(2019, 4, 30),
     rate=1 / 10000,
     slippage=1,
