@@ -1,0 +1,109 @@
+{% extends './index.html' %}
+
+
+{% block ex_head %}
+    <!-- jvectormap -->
+    <link href="/static/pack_css/tool.css" rel="stylesheet">
+{% endblock %}
+
+{% block ex_script %}
+    <!-- angular -->
+    <script src="/static/ALTE/bootstrap/js/bootstrap.min.js"></script>
+{% endblock %}
+
+
+
+{% block body_content_header %}
+    <h1 class="tit-fl">
+        运维工具
+    </h1>
+    <ol class="breadcrumb tit-fr">
+        <li><a href="/"><i class="fa fa-dashboard"></i>&nbsp;&nbsp;&nbsp;首页</a></li>
+        <li class="active"><a>运维OA</a></li>
+        <li class="active"><a>运维工具</a></li>
+    </ol>
+{% endblock %}
+
+
+{% block body_content %}
+    <!-- page content -->
+    <div class="box col-xs-12">
+        <section class="my-pagebackhc">
+                <div class="row">
+                    <br>
+                    <div class="col-md-12">
+                    <ul class="nav nav-tabs" style="padding-bottom: 15px;">
+                        <li class="active"><a href="#tab1" data-toggle="tab">运维工具</a></li>
+                        <li><a href="#tab2" data-toggle="tab">网络工具</a></li>
+                        <li><a href="#tab3" data-toggle="tab">安全工具</a></li>
+                    </ul>
+                    <div class="tab-content">
+                    <div class="tab-pane fade in active" id="tab1">
+                        <div class="col-md-4" style="float: left">
+                            <ul>
+                                <li><a href="http://10.129.96.16:7180" target="_blank">集团大数据管理平台</a></li>
+                                <li><a href="http://cloud.saicstack.com" target="_blank">云平台登录界面</a></li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4" style="float: left">
+                            <ul>
+                                <li><a href="http://jqzabbix.saicstack.com/zabbix" target="_blank">JQ zabbix server</a>
+                                </li>
+                                <li><a href="http://10.132.64.12/zabbix" target="_blank">PK zabbix server</a></li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4" style="float: left">
+                            <ul>
+                                <li><a href="https://10.128.64.22/" target="_blank">帕拉迪堡垒机</a></li>
+                                <li><a href="http://10.130.9.187/" target="_blank">禅道</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade " id="tab2">
+                        <div class="col-md-12" style="text-align:center">
+                            <ul>
+                                <li><a href="http://10.128.6.10" target="_blank">流量分析工具：Bluecoat</a></li>
+                                <li><a href="http://10.130.9.4" target="_blank">流量分析工具：NetFlow</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade " id="tab3">
+                        <div class="col-md-3" style="float: left">
+                            <ul>
+                                <li><a href="https://10.128.6.19" target="_blank">Imperva WAF GW</a></li>
+                                <li><a href="https://10.128.6.18:8083" target="_blank">Imperva WAF MX</a></li>
+                            </ul>
+                        </div>
+                        <div class="col-md-3" style="float: left">
+                            <ul>
+                                <li><a href="https://10.128.6.11" target="_blank">Paloalto(主)</a></li>
+                                <li><a href="https://10.128.6.12" target="_blank">Paloalto(从)</a></li>
+                            </ul>
+                        </div>
+                        <div class="col-md-3" style="float: left">
+                            <ul>
+                                <li><a href="https://10.128.64.12/" target="_blank">radware manage</a></li>
+                                <li><a href="https://10.128.6.14/" target="_blank">radware config</a></li>
+                            </ul>
+                        </div>
+                        <div class="col-md-3" style="float: left">
+                            <ul>
+                                <li><a href="https://10.128.64.20" target="_blank">DDos设备：A10</a></li>
+                                <li><a href="http://10.128.64.13:8000" target="_blank">Splunk</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+                </div>
+        </section>
+    </div>
+    <!-- /page content -->
+
+
+{% endblock %}
+
+
+{#{% block ex_script %}#}
+
+{#{% endblock %}#}

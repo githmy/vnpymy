@@ -4,6 +4,7 @@
 from vnpy.app.cta_strategy.backtesting import BacktestingEngine, OptimizationSetting
 from vnpy.app.cta_strategy.strategies.turtle_signal_strategy import TurtleSignalStrategy
 from datetime import datetime
+import time
 
 engine = BacktestingEngine()
 engine.set_parameters(
@@ -13,7 +14,7 @@ engine.set_parameters(
     # interval="1h",
     start=datetime(2017, 1, 1),
     end=datetime(2019, 11, 30),
-    rate=1/10000,
+    rate=1 / 10000,
     slippage=0.5,
     size=1,
     pricetick=0.5,
@@ -31,6 +32,7 @@ import pandas as pd
 from datetime import datetime
 import matplotlib.pyplot as plt
 import numpy as np
+
 pd.set_option('mode.chained_assignment', None)
 
 
@@ -68,6 +70,7 @@ def calculate_trades_result(trades):
             result = - df["volume"]
 
         return result
+
     df["pos"] = df.apply(calculate_pos, axis=1)
 
     df["net_pos"] = df["pos"].cumsum()
@@ -82,22 +85,26 @@ def calculate_trades_result(trades):
     def get_acum_trade_result(df):
         if df["net_pos"] == 0:
             return df["acum_result"]
+
     df["acum_trade_result"] = df.apply(get_acum_trade_result, axis=1)
 
     def get_acum_trade_volume(df):
         if df["net_pos"] == 0:
             return df["acum_pos"]
-    df["acum_trade_volume"] = df.apply(get_acum_trade_volume, axis=1)   
+
+    df["acum_trade_volume"] = df.apply(get_acum_trade_volume, axis=1)
 
     def get_acum_trade_duration(df):
         if df["net_pos"] == 0:
             return df["current_time"] - df["last_time"]
-    df["acum_trade_duration"] = df.apply(get_acum_trade_duration, axis=1)  
+
+    df["acum_trade_duration"] = df.apply(get_acum_trade_duration, axis=1)
 
     def get_acum_trade_amount(df):
         if df["net_pos"] == 0:
             return df["acum_amount"]
-    df["acum_trade_amount"] = df.apply(get_acum_trade_amount, axis=1) 
+
+    df["acum_trade_amount"] = df.apply(get_acum_trade_amount, axis=1)
 
     # Select row data with net pos equil to zero     
     df = df.dropna()
@@ -115,16 +122,16 @@ def generate_trade_df(trades, size, rate, slippage, capital):
     trade_df["close_direction"] = df["direction"]
     trade_df["close_time"] = df["current_time"]
     trade_df["close_price"] = df["price"]
-    trade_df["pnl"] = df["acum_trade_result"] -         df["acum_trade_result"].shift(1).fillna(0)
-    
-    trade_df["volume"] = df["acum_trade_volume"] -         df["acum_trade_volume"].shift(1).fillna(0)
-    trade_df["duration"] = df["current_time"] -         df["last_time"]
-    trade_df["turnover"] = df["acum_trade_amount"] -         df["acum_trade_amount"].shift(1).fillna(0)
-    
+    trade_df["pnl"] = df["acum_trade_result"] - df["acum_trade_result"].shift(1).fillna(0)
+
+    trade_df["volume"] = df["acum_trade_volume"] - df["acum_trade_volume"].shift(1).fillna(0)
+    trade_df["duration"] = df["current_time"] - df["last_time"]
+    trade_df["turnover"] = df["acum_trade_amount"] - df["acum_trade_amount"].shift(1).fillna(0)
+
     trade_df["commission"] = trade_df["turnover"] * rate
     trade_df["slipping"] = trade_df["volume"] * size * slippage
 
-    trade_df["net_pnl"] = trade_df["pnl"] -         trade_df["commission"] - trade_df["slipping"]
+    trade_df["net_pnl"] = trade_df["pnl"] - trade_df["commission"] - trade_df["slipping"]
 
     result = calculate_base_net_pnl(trade_df, capital)
     return result
@@ -138,7 +145,7 @@ def calculate_base_net_pnl(df, capital):
     df["balance"] = df["acum_pnl"] + capital
     df["return"] = np.log(
         df["balance"] / df["balance"].shift(1)
-        ).fillna(0)
+    ).fillna(0)
     df["highlevel"] = (
         df["balance"].rolling(
             min_periods=1, window=len(df), center=False).max()
@@ -147,7 +154,7 @@ def calculate_base_net_pnl(df, capital):
     df["ddpercent"] = df["drawdown"] / df["highlevel"] * 100
 
     df.reset_index(drop=True, inplace=True)
-    
+
     return df
 
 
@@ -170,27 +177,27 @@ def short2cover(df, capital):
 
 
 def statistics_trade_result(df, capital, show_chart=True):
-    """"""
+    """统计交易结果"""
     end_balance = df["balance"].iloc[-1]
     max_drawdown = df["drawdown"].min()
     max_ddpercent = df["ddpercent"].min()
 
     pnl_medio = df["net_pnl"].mean()
     trade_count = len(df)
-    duration_medio = df["duration"].mean().total_seconds()/3600
+    duration_medio = df["duration"].mean().total_seconds() / 3600
     commission_medio = df["commission"].mean()
     slipping_medio = df["slipping"].mean()
 
     win = df[df["net_pnl"] > 0]
     win_amount = win["net_pnl"].sum()
     win_pnl_medio = win["net_pnl"].mean()
-    win_duration_medio = win["duration"].mean().total_seconds()/3600
+    win_duration_medio = win["duration"].mean().total_seconds() / 3600
     win_count = len(win)
 
     loss = df[df["net_pnl"] < 0]
     loss_amount = loss["net_pnl"].sum()
     loss_pnl_medio = loss["net_pnl"].mean()
-    loss_duration_medio = loss["duration"].mean().total_seconds()/3600
+    loss_duration_medio = loss["duration"].mean().total_seconds() / 3600
     loss_count = len(loss)
 
     winning_rate = win_count / trade_count
@@ -253,13 +260,13 @@ def output(msg):
 
 
 def exhaust_trade_result(
-    trades, 
-    size: int = 10, 
-    rate: float = 0.0, 
-    slippage: float = 0.0, 
-    capital: int = 1000000,
-    show_long_short_condition=True
-    ):
+        trades,
+        size: int = 10,
+        rate: float = 0.0,
+        slippage: float = 0.0,
+        capital: int = 1000000,
+        show_long_short_condition=True
+):
     """
     Exhaust all trade result.
     """
@@ -280,5 +287,7 @@ def exhaust_trade_result(
     output("纯空头交易")
     statistics_trade_result(short_trades, capital)
 
-exhaust_trade_result(engine.trades,size=1, rate=8/10000, slippage=0.5)
-
+print(engine.trades)
+print(engine.daily_df.columns)
+print(engine.daily_df)
+exhaust_trade_result(engine.trades, size=1, rate=8 / 10000, slippage=0.5)
