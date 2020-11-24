@@ -1,0 +1,84 @@
+{% extends "../index.html" %}
+
+{% block left_memu %}
+    <li class="treeview active">
+        <a href="#">
+            <i class="fa fa-pie-chart"></i>
+            <span>数据分析</span>
+            <span class="pull-right-container">
+              <i class="fa fa-angle-left pull-right"></i>
+            </span>
+        </a>
+        <ul class="treeview-menu">
+{#            <li><a href="{% url 'data_analy:data_analy-index' %}"><i class="fa fa-circle-o"></i>指标列表</a></li>#}
+{#            <li><a href="{% url 'data_analy:import' %}"><i class="fa fa-circle-o"></i>指标列表</a></li>#}
+            <li><a href="{% url 'data_analy:data_show' %}"><i class="fa fa-circle-o"></i>指标列表</a></li>
+            <li><a href="{% url 'data_analy:relation_views' %}"><i class="fa fa-circle-o"></i>相关性</a></li>
+            <li><a href="{% url 'data_analy:confidence_views' %}"><i class="fa fa-circle-o"></i>置信度</a></li>
+            <li><a href="{% url 'data_analy:fitfunc_views' %}"><i class="fa fa-circle-o"></i>拟合函数</a></li>
+        </ul>
+    </li>
+    <li class="treeview">
+        <a href="#">
+            <i class="fa fa-laptop"></i>
+            <span>标的内规律</span>
+            <span class="pull-right-container"><i class="fa fa-angle-left pull-right"></i></span>
+        </a>
+        <ul class="treeview-menu">
+            <li><a href="pages/UI/general.html"><i class="fa fa-circle-o"></i>海龟</a></li>
+            <li><a href="pages/UI/icons.html"><i class="fa fa-circle-o"></i>突破</a></li>
+            <li><a href="pages/UI/buttons.html"><i class="fa fa-circle-o"></i>回归</a></li>
+            <li><a href="pages/UI/buttons.html"><i class="fa fa-circle-o"></i>特殊日期</a></li>
+        </ul>
+    </li>
+    <li class="treeview">
+        <a href="#">
+            <i class="fa fa-table"></i><span>标的间规律</span>
+            <span class="pull-right-container"><i class="fa fa-angle-left pull-right"></i></span>
+        </a>
+        <ul class="treeview-menu">
+            <li><a href="pages/forms/general.html"><i class="fa fa-circle-o"></i>相关性</a></li>
+            <li><a href="pages/forms/advanced.html"><i class="fa fa-circle-o"></i>协变性</a></li>
+        </ul>
+    </li>
+    <li class="treeview">
+        <a href="#">
+            <i class="fa fa-battery-quarter"></i> <span>标的筛选</span>
+            <span class="pull-right-container"><i class="fa fa-angle-left pull-right"></i></span>
+        </a>
+        <ul class="treeview-menu">
+            <li><a href="pages/forms/advanced.html"><i class="fa fa-circle-o"></i>标的群组</a></li>
+            <li><a href="pages/forms/advanced.html"><i class="fa fa-circle-o"></i>标的组承序</a></li>
+            {#            <li><a href="{% url 'tenant:tenant-index' %}"><i class="fa fa-circle-o"></i> 租户信息</a></li>#}
+            {#            <li><a href="{% url 'tenant:tenant-plot' %}"><i class="fa fa-circle-o"></i> 租户展示</a></li>#}
+        </ul>
+    </li>
+    <li class="treeview">
+        <a href="#">
+            <i class="fa fa-battery-quarter"></i> <span>标的环境</span>
+            <span class="pull-right-container"><i class="fa fa-angle-left pull-right"></i></span>
+        </a>
+        <ul class="treeview-menu">
+            <li><a href="pages/forms/advanced.html"><i class="fa fa-circle-o"></i>环境指标等级</a></li>
+            <li><a href="pages/forms/advanced.html"><i class="fa fa-circle-o"></i>环境指标时间点</a></li>
+            {#            <li><a href="{% url 'tenant:tenant-index' %}"><i class="fa fa-circle-o"></i> 租户信息</a></li>#}
+            {#            <li><a href="{% url 'tenant:tenant-plot' %}"><i class="fa fa-circle-o"></i> 租户展示</a></li>#}
+        </ul>
+    </li>
+{% endblock %}
+{##}
+{#{% block body_content_header %}#}
+{#    {{ block.super }}#}
+{#{% endblock %}#}
+{##}
+{#{% block body_content %}#}
+{##}
+{#{% endblock %}#}
+{##}
+{#{% block ex_head %}#}
+{##}
+{#{% endblock %}#}
+{##}
+{#{% block ex_script %}#}
+{##}
+{#{% endblock %}#}

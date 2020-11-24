@@ -45,6 +45,7 @@ engine.get_tick("600036.SSE", use_df=True)
 
 # 委托下单
 vt_orderid = engine.buy("600036.SSE", 32, 1000)
+print(789)
 print(vt_orderid)
 
 # 查询特定委托

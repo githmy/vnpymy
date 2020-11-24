@@ -1,0 +1,356 @@
+{% extends 'index.html' %}
+
+{% block head %}
+    <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+    <!-- Bootstrap 3.3.7 -->
+    <link rel="stylesheet" href="/static/ALTE/bootstrap/css/bootstrap.min.css">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.5.0/css/font-awesome.min.css">
+    <!-- Ionicons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ionicons/2.0.1/css/ionicons.min.css">
+    <!-- fullCalendar 2.2.5-->
+    <link rel="stylesheet" href="/static/ALTE/plugins/fullcalendar/myfullcalendar.css">
+    {#    <link rel="stylesheet" href="/static/assets/plugins/fullcalendar/fullcalendar.min.css">#}
+    <link rel="stylesheet" href="/static/ALTE/plugins/fullcalendar/fullcalendar.print.css" media="print">
+    <!-- Theme style -->
+    <link rel="stylesheet" href="/static/ALTE/dist/css/AdminLTE.css">
+    <!-- AdminLTE Skins. Choose a skin from the css/skins
+         folder instead of downloading all of them to reduce the load. -->
+        <link rel="stylesheet" href="/static/ALTE/dist/css/skins/_all-skins.css">
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+      <![endif]-->
+
+    <!-- Google Font -->
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic">
+{% endblock %}
+
+{% block body_content_header %}
+    <h1 class="tit-fl">
+        {{ menu }}
+    </h1>
+    <ol class="breadcrumb tit-fr">
+        <li><a href="/"><i class="fa fa-dashboard"></i>&nbsp;&nbsp;&nbsp;首页</a></li>
+        <li class="active">运维OA</li>
+        <li class="active"><a href="{% url 'op:calendar' %}">值班日历</a></li>
+    </ol>
+{% endblock %}
+
+
+{% block body_content %}
+    <!-- Main content -->
+        <section class="content" style="overflow-y: scroll;height: 850px;clear: both">
+    <div class="box">
+        <div class="row">
+            <div class="box-header">
+                {% if perms.op.add_dutytab %}
+                    <a href="add" type="button" style="float: right;margin-right: 15px;margin-top: 2px"
+                       class="btn btn-primary btn-flat">新建值日</a>
+                {% endif %}
+                <a id="fileDialog5" style="float: right" class="btn btn-outline btn-default">
+                    <i class="fa fa-edit" style="color: #666"></i>
+                    <span class="text-muted">导出值日并下载</span>
+                </a>
+                {% if perms.op.add_dutytab %}
+                    <small class="pull-right">
+                        <a href="../batchin" style="float: right" class="btn btn-outline btn-default">
+                            <i class="fa fa-fw fa-edit" style="color: #666"></i>
+                            <span class="text-muted">导入值日xls数据</span>
+                        </a>
+                    </small>
+                {% endif %}
+            </div>
+            <!-- /.box-header -->
+            <div class="box-body">
+                <div id="calendar"></div>
+                <!-- /.box-body -->
+            </div>
+            <!-- /. box -->
+        </div>
+        <!-- /.col -->
+    </div>
+    <!-- /.row -->
+        </section>
+    <!-- /.content -->
+{% endblock %}
+
+{% block script %}
+    <!-- jQuery 3.1.1 -->
+    <script src="/static/pack_js/jquery-3.1.1.min.js"></script>
+    <!-- Bootstrap 3.3.7 -->
+    <script src="/static/ALTE/bootstrap/js/bootstrap.min.js"></script>
+    <!-- jQuery UI 1.11.4 -->
+    <script src="https://code.jquery.com/ui/1.11.4/jquery-ui.min.js"></script>
+    <!-- Slimscroll -->
+    <script src="/static/ALTE/plugins/slimScroll/jquery.slimscroll.min.js"></script>
+    <!-- FastClick -->
+    <script src="/static/ALTE/plugins/fastclick/fastclick.js"></script>
+    <!-- AdminLTE App -->
+    <script src="/static/ALTE/dist/js/adminlte.min.js"></script>
+    <!-- fullCalendar 2.2.5 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.11.2/moment.min.js"></script>
+{#        <script src="/static/ALTE/plugins/fullcalendar/fullcalendar.min.js"></script>#}
+    <script src="/static/ALTE/plugins/fullcalendar/myfullcalendar.js"></script>
+{% endblock %}
+
+{% block ex_script %}
+    {#    <script src="/static/plot/js/calendar_ini.js"></script>#}
+    <script>
+        function ini_events(ele) {
+            ele.each(function () {
+
+                // create an Event Object (http://arshaw.com/fullcalendar/docs/event_data/Event_Object/)
+                // it doesn't need to have a start or end
+                var eventObject = {
+                    title: $.trim($(this).text()) // use the element's text as the event title
+                };
+
+                // store the Event Object in the DOM element so we can get to it later
+                $(this).data('eventObject', eventObject);
+
+                // make the event draggable using jQuery UI
+                $(this).draggable({
+                    zIndex: 1070,
+                    revert: true, // will cause the event to go back to its
+                    revertDuration: 0  //  original position after the drag
+                });
+
+            });
+        }
+
+        function calendar_data(id) {
+            console.log('#' + id);
+            /* initialize the calendar
+             -----------------------------------------------------------------*/
+            //Date for the calendar events (dummy data)
+            $('#' + id).fullCalendar({
+
+                buttonText: {
+                    today: '今天',
+                    month: '月',
+                    week: '周',
+                    day: '日'
+                },
+                allDayText: "全天",
+                // timeFormat: {
+                //     '': 'H:mm{-H:mm}'
+                // },
+                // weekMode: "variable",
+                // columnFormat: {
+                //     month: 'dddd',
+                //     week: 'dddd M-d',
+                //     day: 'dddd M-d'
+                // },
+                titleFormat: {
+                    month: 'YYYY年 MMMM月',
+                    week: 'YYYY年 MMMM月DD日',
+                    day: 'YYYY年 MMMM月DD日 dddd'
+                },
+                monthNames: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"],
+                dayNames: ["星期天", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"],
+                dayNamesShort: ["周日", "周一", "周二", "周三", "周四", "周五", "周六"],
+                header: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'month,agendaWeek,agendaDay'
+                },
+                //大标题，不是事件标题
+                //Random default events
+                events: function (start, end, timezone, callback) {
+                    window.calendar_datemf = $('#' + id).fullCalendar('getDate').startOf('month').format("YYYY-MM-DD");
+                    window.calendar_datemt = $('#' + id).fullCalendar('getDate').endOf('month').format("YYYY-MM-DD");
+                    // $(".fc-sat").css('backgroundColor','#c4e1ff');
+                    $(".fc-today").css('backgroundColor', '#f4f9fd');
+                    // $('.fc-event-container').css('border-radius','0px');
+                    var date = $('#' + id).fullCalendar('getDate').format('YYYY-MM-DD HH:mm:ss');
+                    $.ajax({
+                            url: 'data/',
+                            dataType: 'json',
+                            data: {
+                                // id: {$id},
+                                type: 'month',
+                                name: 'abc',
+                                segm: 'morning',
+                                date: date,
+                            },
+                            success: function (json) { // 获取当前月的数据
+                                var events = [];
+                                // var d = new Date();
+                                // d.setHours(d.getHours() + 2);
+                                if (json.status === 1) {
+                                    $.each(json.data, function (i, c) {
+                                            // if (c.is_special == '1') {
+                                            events.push({
+                                                title: c.title,
+                                                start: c.start,
+                                                _id: c._id,
+                                                // end: d,
+                                                allDay: c.allDay, // will be parsed
+                                                color: '#c1e9fe',
+                                                textColor: "#666666",
+                                                // backgroundColor: "#f4f9fd", 直角
+                                                // borderColor: c.backgroundColor,
+                                            })
+                                            ;
+                                        }
+                                    );
+                                } else {
+                                    alert("暂无数据。");
+                                }
+                                callback(events);
+                            },
+                            error: function (error) {
+                                alert("获取数据失败！");
+                                // return false;
+                            }
+                        }
+                    )
+                    ;
+                },
+                // editable: true,
+                editable: false,
+                {% if perms.op.change_dutytab %}
+                    eventClick: function (calEvent, jsEvent, view, callback) {
+                        window.location.href = "/op/calendar/edit/" + calEvent._id.slice(3) + "/";
+                    },
+                {% endif %}
+                eventMouseout: function (event) {
+                    //do something here...
+                    // console.log('eventMouseout被执行，选中Event的title属性值为：', event.title);
+                    // console.log('鼠标离开 ...');
+                    // ...
+                },
+                eventMouseover: function (event) {
+                    //do something here...
+                    // ...
+                },
+                droppable: false, // this allows things to be dropped onto the calendar !!!
+                // droppable: true, // this allows things to be dropped onto the calendar !!!
+                drop: function (date, allDay) { // this function is called when something is dropped
+                    // window.location.href = "/duty/add/";
+                    // retrieve the dropped element's stored Event Object
+                    var originalEventObject = $(this).data('eventObject');
+                    // we need to copy it, so that multiple events don't have a reference to the same object
+                    var copiedEventObject = $.extend({}, originalEventObject);
+                    // assign it the date that was reported
+                    copiedEventObject.start = date;
+                    copiedEventObject.allDay = allDay;
+                    copiedEventObject.backgroundColor = $(this).css("background-color");
+                    copiedEventObject.borderColor = $(this).css("border-color");
+                    // render the event on the calendar
+                    // the last `true` argument determines if the event "sticks" (http://arshaw.com/fullcalendar/docs/event_rendering/renderEvent/)
+                    $('#' + id).fullCalendar('renderEvent', copiedEventObject, true);
+
+                    // is the "remove after drop" checkbox checked?
+                    if ($('#drop-remove').is(':checked')) {
+                        // if so, remove the element from the "Draggable Events" list
+                        $(this).remove();
+                    }
+                    self.location = "../down/" + name;
+                }
+            });
+        }
+        {#    </script>#}
+        {#    <script src="/static/plot/js/calendarp.js"></script>#}
+        {##}
+        {#    <script>#}
+        $(function () {
+            ini_events($('#external-events div.external-event'));
+            var date = new Date();
+            var d = date.getDate(),
+                m = date.getMonth(),
+                y = date.getFullYear();
+            var data = [
+                {
+                    title: 'All Day Event',
+                    start: new Date(y, m, 1),
+                    backgroundColor: "#f56954", //red
+                    borderColor: "#f56954" //red
+                }
+            ];
+            calendar_data('calendar');
+            /* ADDING EVENTS */
+            var currColor = "#3c8dbc"; //Red by default
+            //Color chooser button
+            var colorChooser = $("#color-chooser-btn");
+            $("#color-chooser > li > a").click(function (e) {
+                e.preventDefault();
+                //Save color
+                currColor = $(this).css("color");
+                //Add color effect to button
+                $('#add-new-event').css({"background-color": currColor, "border-color": currColor});
+            });
+
+            {% if perms.op.add_dutytab %}
+                $("#add-new-event").click(function (e) {
+                    e.preventDefault();
+                    //Get value and make sure it is not null
+                    var val = $("#new-event").val();
+                    if (val.length == 0) {
+                        return;
+                    }
+
+                    //Create events
+                    var event = $("<div />");
+                    event.css({
+                        "background-color": currColor,
+                        "border-color": currColor,
+                        "color": "#fff"
+                    }).addClass("external-event");
+                    event.html(val);
+                    $('#external-events').prepend(event);
+
+                    //Add draggable funtionality
+                    ini_events(event);
+
+                    //Remove event from text input
+                    $("#new-event").val("");
+                });
+            {% endif %}
+        });
+
+    </script>
+
+    <script>
+        $(document).ready(function () {
+            //弹出一个输入框，输入一段文字，可以提交
+            var vasig = '#fileDialog5';
+            {#        document.querySelector(vasig).click();#}
+            var chooser = document.querySelector(vasig);
+            chooser.addEventListener("click", function (evt) {
+                var ori_name = "值日信息";
+                var name = prompt("下载重命名", ori_name); //将输入的内容赋给变量 name ，
+                //这里需要注意的是，prompt有两个参数，前面是提示的话，后面是当对话框出来后，在对话框里的默认值
+                //如果返回的有内容
+                if (name !== null && name !== "") {
+                    self.location = "../down?dname=" + name + "&datef=" + window.calendar_datemf + "&datet=" + window.calendar_datemt;
+                    {#                    $.ajax({#}
+                    {#                        type: 'GET',#}
+                    {#                        url: '../down',#}
+                    {#                        data: {'dname': name, 'datef': window.calendar_datemf, 'datet': window.calendar_datemt},#}
+                    {#                        success: function (msg) {#}
+                    {#                            alert('下载成功！');#}
+                    {#                        },#}
+                    {#                        error: function (returndata) {#}
+                    {#                            alert("error: " + returndata);#}
+                    {#                        }#}
+                    {#                    });#}
+                }
+            }, false);
+        });
+        $(".sidebar-toggle").click(function () {
+            if ($(".logo-img").css('display') == 'block') {
+                $(".logo-img").addClass("logo-gif");
+            } else {
+                $(".logo-img").removeClass("logo-gif");
+            }
+        });
+    </script>
+{% endblock %}
+
+
