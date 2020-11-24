@@ -279,4 +279,5 @@ vn.py使用Github托管其源代码，如果希望贡献代码请使用github的
 ## 版权说明
 
 MIT
-# vnpymy
+pip install pymongo websocket-client msgpack-python qdarkstyle SortedContainers wmi future flask-socketio flask-restful flask-cors gevent-websocket pyjwt ccxt snappy tushare typing matplotlib scipy tornado bs4 pyqtgraph peewee
+pip install quantopian pyqt qtpy psutil
