@@ -16,7 +16,7 @@ x64
 
 # Temp
 build
-dist
+# dist
 *.local
 
 # vn.py

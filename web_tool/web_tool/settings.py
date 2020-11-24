@@ -121,3 +121,5 @@ STATICFILES_DIRS = (
 # BASE_DIR 是项目的绝对地址
 STATIC_ROOT = os.path.abspath(os.path.join(BASE_DIR, 'root'))
 STATIC_URL = '/static/'
+# print(STATICFILES_DIRS)
+# print(STATIC_ROOT)
