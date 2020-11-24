@@ -38,11 +38,11 @@ def data_index(request):
     print(777)
     Model = None
     sform = forms.DataSearchForm(Model)
-    Model = {}
-    cform = forms.DataAddForm(Model)
-    return render(request, 'data_analy/index.html', {
-        'searchForm': sform,
-        'createForm': cform
+    # Model = {}
+    # cform = forms.DataAddForm(Model)
+    return render(request, 'data_analy/tables.html', {
+        # 'searchForm': sform,
+        # 'createForm': cform
     })
 
 
