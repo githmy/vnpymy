@@ -36,8 +36,10 @@ def fitfunc_v(request):
 # @login_required
 def data_index(request):
     print(777)
-    sform = forms.DataSearchForm()
-    cform = forms.DataAddForm()
+    Model = None
+    sform = forms.DataSearchForm(Model)
+    Model = {}
+    cform = forms.DataAddForm(Model)
     return render(request, 'data_analy/index.html', {
         'searchForm': sform,
         'createForm': cform

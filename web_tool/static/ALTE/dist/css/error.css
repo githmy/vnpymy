@@ -1,0 +1,35 @@
+.content-wrapper{
+	background: #2F83CB;
+}
+.error{
+	color:#fff;
+	font-size: 300px;
+	font-weight:bold;
+	text-align:center;
+}
+.title{
+	margin:-40px 175px;
+}
+.title>p{
+	text-align:center;
+	font-size:50px;
+	color:#fff;
+}
+
+.title .btn{
+	width: 150px;
+	height:50px;
+	background:#fff;
+	margin: 30px 310px;
+	border-radius:30px;
+	font-size:24px;
+}
+.bg>img{
+	width: 1300px;
+    margin-top: 34px;
+
+}
+.last{
+	height:300px;
+	background:#F4F8FC;
+}
