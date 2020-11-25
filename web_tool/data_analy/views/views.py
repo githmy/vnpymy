@@ -3,6 +3,7 @@ from django.views.generic import FormView, UpdateView
 from common.mixins import JSONResponseMixin, AdminUserRequiredMixin
 from common.utils import get_object_or_none
 from .. import forms
+from django import forms as oforms
 import xlrd
 import xlwt
 import uuid
@@ -33,16 +34,43 @@ def fitfunc_v(request):
     return render(request, 'data_analy/data_analy_index.html', context)
 
 
+
 # @login_required
 def data_index(request):
-    print(777)
-    Model = None
-    sform = forms.DataSearchForm(Model)
+    class Modeln:
+        def __init__(self):
+            pass
+
+    class DataSearchFormn:
+        class Meta:
+            model = Modeln
+            fields = ['purchase', 'num', 'type', 'model', 'serial', 'supplier', 'status', 'brand', 'expired']
+            widgets = {
+                'purchase': oforms.Select(
+                    attrs={'id': 'search_purchase', 'name': 's_purchase', 'style': 'height: 38px;',
+                           'class': 'col-sm-6'}),
+                'num': oforms.TextInput(attrs={'id': 'search_num', 'name': 's_num', 'class': 'col-sm-6'}),
+                'type': oforms.Select(
+                    attrs={'id': 'search_type', 'name': 's_type', 'style': 'height: 38px;', 'class': 'col-sm-6'}),
+                'model': oforms.TextInput(attrs={'id': 'search_model', 'name': 's_model', 'class': 'col-sm-6'}),
+                'serial': oforms.TextInput(attrs={'id': 'search_serial', 'name': 's_serial', 'class': 'col-sm-6'}),
+                'supplier': oforms.TextInput(
+                    attrs={'id': 'search_supplier', 'name': 's_supplier', 'class': 'col-sm-6'}),
+                'status': oforms.Select(
+                    attrs={'id': 'search_status', 'name': 's_status', 'style': 'height: 38px;', 'class': 'col-sm-6'}),
+                'brand': oforms.TextInput(attrs={'id': 'search_brand', 'name': 's_brand', 'class': 'col-sm-6'}),
+                'expired': oforms.DateTimeInput(
+                    attrs={'id': 'search_expired', 'name': 's_expired', 'class': 'col-sm-6'}),
+            }
+
+    sform = DataSearchFormn()
+    # sform = {}
     # Model = {}
-    # cform = forms.DataAddForm(Model)
+    # cform = forms.DataAddForm()
+    # cform = {}
     return render(request, 'data_analy/tables.html', {
-        # 'searchForm': sform,
-        # 'createForm': cform
+        'searchForm': sform,
+        # 'createForm': cform,
     })
 
 

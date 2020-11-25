@@ -12,7 +12,7 @@ urlpatterns = [
     # url(r'^purchase/(?P<pk>[0-9]+)/change/$', views.PurchaseUpdateView.as_view(), name='purchase-change'),
     # url(r'^purchase/(?P<pk>[0-9]+)/delete/$', views.purchase_delete, name='purchase-delete'),
     # url(r'^purchase/export/$', views.PurchaseExportView.as_view(), name='purchase-export'),
-    url(r'^import/$', views.BulkImportDataView.as_view(), name='purchase-import'),
+    # url(r'^import/$', views.BulkImportDataView.as_view(), name='purchase-import'),
     #
     # # 资产管理
     # url(r'^asset/$', views.asset_index, name='asset-index'),

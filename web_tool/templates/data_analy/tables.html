@@ -1,4 +1,5 @@
 {% extends 'data_analy/index.html' %}
+{% load static %}
 
 {% block body_content_header %}
     <h1>
@@ -76,19 +77,24 @@
 {% block head %}
     <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
     <!-- Bootstrap 3.3.7 -->
-    <link rel="stylesheet" href="/static/assets/bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{% static 'ALTE/bootstrap/css/bootstrap.min.css' %}">
+    {#    <link rel="stylesheet" href="/static/assets/bootstrap/css/bootstrap.min.css">#}
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.5.0/css/font-awesome.min.css">
     <!-- Ionicons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ionicons/2.0.1/css/ionicons.min.css">
     <!-- DataTables -->
-    <link rel="stylesheet" href="/static/assets/plugins/datatables/dataTables.bootstrap.css">
+    <link rel="stylesheet" href="{% static 'ALTE/plugins/datatables/dataTables.bootstrap.css' %}">
+    {#    <link rel="stylesheet" href="/static/assets/plugins/datatables/dataTables.bootstrap.css">#}
     <!-- Theme style -->
-    <link rel="stylesheet" href="/static/assets/dist/css/AdminLTE.css">
+    <link rel="stylesheet" href="{% static 'ALTE/dist/css/AdminLTE.css' %}">
+    {#    <link rel="stylesheet" href="/static/assets/dist/css/AdminLTE.css">#}
     <!-- AdminLTE Skins. Choose a skin from the css/skins
          folder instead of downloading all of them to reduce the load. -->
-    <link rel="stylesheet" href="/static/assets/dist/css/skins/_all-skins.css">
-    <link rel="stylesheet" href="/static/assets/plugins/datepicker/bootstrap-datetimepicker.css">
+    <link rel="stylesheet" href="{% static 'ALTE/dist/css/skins/_all-skins.css' %}">
+    <link rel="stylesheet" href="{% static 'ALTE/plugins/datepicker/bootstrap-datetimepicker.css' %}">
+    {#    <link rel="stylesheet" href="/static/assets/dist/css/skins/_all-skins.css">#}
+    {#    <link rel="stylesheet" href="/static/assets/plugins/datepicker/bootstrap-datetimepicker.css">#}
 
     <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
     <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
@@ -104,21 +110,30 @@
 
 {% block script %}
     <!-- jQuery 3.1.1 -->
-    <script src="/static/assets/plugins/jQuery/jquery-3.1.1.min.js"></script>
+    <script src="{% static 'ALTE/plugins/jQuery/jquery-3.1.1.min.js' %}"></script>
+    {#    <script src="/static/assets/plugins/jQuery/jquery-3.1.1.min.js"></script>#}
     <!-- Bootstrap 3.3.7 -->
-    <script src="/static/assets/bootstrap/js/bootstrap.min.js"></script>
+    <script src="{% static 'ALTE/bootstrap/js/bootstrap.min.js' %}"></script>
+    {#    <script src="/static/assets/bootstrap/js/bootstrap.min.js"></script>#}
     <!-- DataTables -->
-    <script src="/static/assets/plugins/datatables/jquery.dataTables.min.js"></script>
-    <script src="/static/assets/plugins/datatables/dataTables.bootstrap.min.js"></script>
+    <script src="{% static 'ALTE/plugins/datatables/jquery.dataTables.min.js' %}"></script>
+    <script src="{% static 'ALTE/plugins/datatables/dataTables.bootstrap.min.js' %}"></script>
+    {#    <script src="/static/assets/plugins/datatables/jquery.dataTables.min.js"></script>#}
+    {#    <script src="/static/assets/plugins/datatables/dataTables.bootstrap.min.js"></script>#}
     <!-- SlimScroll -->
-    <script src="/static/assets/plugins/slimScroll/jquery.slimscroll.min.js"></script>
+    <script src="{% static 'ALTE/plugins/slimScroll/jquery.slimscroll.min.js' %}"></script>
+    {#    <script src="/static/assets/plugins/slimScroll/jquery.slimscroll.min.js"></script>#}
     <!-- FastClick -->
-    <script src="/static/assets/plugins/fastclick/fastclick.js"></script>
+    <script src="{% static 'ALTE/plugins/fastclick/fastclick.js' %}"></script>
+    {#    <script src="/static/assets/plugins/fastclick/fastclick.js"></script>#}
     <!-- AdminLTE App -->
-    <script src="/static/assets/dist/js/adminlte.min.js"></script>
+    <script src="{% static 'ALTE/dist/js/adminlte.min.js' %}"></script>
+    {#    <script src="/static/assets/dist/js/adminlte.min.js"></script>#}
     <!-- AdminLTE for demo purposes -->
-    <script src="/static/assets/dist/js/demo.js"></script>
-    <script src="/static/assets/plugins/datepicker/bootstrap-datetimepicker.js"></script>
+    <script src="{% static 'ALTE/dist/js/demo.js' %}"></script>
+    <script src="{% static 'ALTE/plugins/datepicker/bootstrap-datetimepicker.js' %}"></script>
+    {#    <script src="/static/assets/dist/js/demo.js"></script>#}
+    {#    <script src="/static/assets/plugins/datepicker/bootstrap-datetimepicker.js"></script>#}
 {% endblock %}
 
 {% block ex_script %}
@@ -160,7 +175,9 @@
                 "columnDefs": [{
                     "targets": -1,
                     "render": function (data, type, row, meta) {
-//                        return '<a href="' + row.cha_id + '/show/">查看</a><b>|</b>'+'<a href="' + row.cha_id + '/show/">变更结果</a><b>|</b>'+'{% if perms.moc.change_list %}<a href="' + row.cha_id + '/change/">更改</a>{% else %}<a style="color:#9D9D9D">更改</a>{% endif %}';
+//                        return '<a href="' + row.cha_id + '/show/">查看</a><b>|</b>'+'<a href="' + row.cha_id + '/show/">变更结果</a><b>|</b>'+'
+                        {% if perms.moc.change_list %}<a href = "' + row.cha_id + '/change/" > 更改 < / a >{% else %}
+                            < a style="color:#9D9D9D" > 更改 < / a>{% endif %}';
                         if (row.result === null) {
                             return '{% if perms.moc.change_list %}<a href="/moc/cha_log_tab/'
                                     + row.cha_id
@@ -170,10 +187,10 @@
                         } else {
                             if (row.result === "成功") {
                                 return '<a href="#" style="color:#9D9D9D">执行' + row.result + '</a>'
-                            }else if (row.result === "失败") {
-                                return '<a href="#" style="color:#9D9D9D">执行' + row.result + '</a><b>|</b>'+'<a href="/moc/cha_log_tab/' + row.cha_id +
+                            } else if (row.result === "失败") {
+                                return '<a href="#" style="color:#9D9D9D">执行' + row.result + '</a><b>|</b>' + '<a href="/moc/cha_log_tab/' + row.cha_id +
                                     '/fail_info">查看失败原因</a>'
-                            }else{
+                            } else {
                                 return '未知结果'
                             }
                         }
