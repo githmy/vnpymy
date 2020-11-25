@@ -51,7 +51,7 @@ def data_list(request):
 
 # @login_required
 def data_index(request):
-    tmp_path = os.path.join("g:/", "test.xlsx")
+    tmp_path = os.path.join("..", "test.xlsx")
     data = pd.read_excel(io=tmp_path, sheet_name='Sheet1', header=0)
     print(data)
     collist = data.columns
