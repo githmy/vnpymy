@@ -32,7 +32,7 @@
                             </div>
                         </div>
                         <div class="col-sm-2">
-                            <button class="btn btn-default" data-toggle="modal" data-target="#asset_import_modal"
+                            <button class="btn btn-default" data-toggle="modal" data-target="#data_import_modal"
                                     tabindex="0"><i class="fa fa-reply-all">&nbsp;&nbsp;导入</i>
                             </button>
                         </div>
@@ -41,7 +41,7 @@
                             </button>
                         </div>
                         <div class="col-sm-2">
-                            <button class="btn btn-default" data-toggle="modal" data-target="#asset_add_modal"
+                            <button class="btn btn-default" data-toggle="modal" data-target="#data_add_modal"
                                     tabindex="0"><i class="fa fa-plus">&nbsp;&nbsp;添加</i></button>
                         </div>
                         {#                    </div>#}
@@ -96,7 +96,7 @@
         });
 
         var options = {
-            url: "{% url 'data_analy:data-list' %}", //  请求url
+            url: "{% url 'data_analy:api-data-list' %}", //  请求url
             method: 'get',
             dataType: 'json',
             contentType: "application/x-www-form-urlencoded",
@@ -195,7 +195,7 @@
         };
 
         function operateFormatter(value, row, index) {//赋予的参数
-            return '<a href="#" data-toggle="modal" data-target="#asset_detail_modal" tabindex="0" onclick=detailTableId(' + row.pk + ')>查看</a><b>|</b>' +
+            return '<a href="#" data-toggle="modal" data-target="#data_detail_modal" tabindex="0" onclick=detailTableId(' + row.pk + ')>查看</a><b>|</b>' +
                 '<a href="' + row.pk + '/change/">修改</a><b>|</b>' +
                 '<a href="#" onclick=delTableId(' + row.pk + ')>删除</a>';
         }
@@ -227,21 +227,21 @@
         }
 
         function doExport() {
-            var assets = [];
+            var datas = [];
             $("#data-table").find(":checkbox:checked").each(function () {
                 {#                将表格所有第二列中的数据放到一个数组中#}
-                assets.push($(this).parent().next().text())
+                datas.push($(this).parent().next().text())
             });
 
-            if (assets[0] === "") {
-                assets.shift();
+            if (datas[0] === "") {
+                datas.shift();
             }
 
-            console.log(assets);
+            console.log(datas);
             $.ajax({
                 url: "{% url 'data_analy:data-export' %}",
                 method: 'POST',
-                data: JSON.stringify({assets_id: assets}),
+                data: JSON.stringify({datas_id: datas}),
                 dataType: "json",
                 success: function (data, textStatus) {
                     window.open(data.redirect)
@@ -252,13 +252,13 @@
             })
         }
 
-        $('#btn_asset_import').click(function () {
-            var $form = $('#fm_asset_import');
+        $('#btn_data_import').click(function () {
+            var $form = $('#fm_data_import');
             $form.find('.help-block').remove();
 
             function success(data) {
                 if (data.valid === false) {
-                    $('<span />', {class: 'help-block text-danger'}).html(data.msg).insertAfter($('#id_assets'));
+                    $('<span />', {class: 'help-block text-danger'}).html(data.msg).insertAfter($('#id_datas'));
                 } else {
                     $('#id_created').html(data.created_info);
                     $('#id_created_detail').html(data.created.join(', '));
@@ -266,7 +266,7 @@
                     $('#id_updated_detail').html(data.updated.join(', '));
                     $('#id_failed').html(data.failed_info);
                     $('#id_failed_detail').html(data.failed.join(', '));
-                    $('#btn_asset_import').hide();
+                    $('#btn_data_import').hide();
                     doQuery();
                 }
             }
@@ -274,14 +274,14 @@
             $form.ajaxSubmit({success: success});
         });
 
-        $('#btn_asset_add').click(function () {
-            var $form = $('#fm_asset_add');
+        $('#btn_data_add').click(function () {
+            var $form = $('#fm_data_add');
 
             function success(data) {
                 if (data.status === false) {
                     console.log('提交失败.')
                 } else {
-                    $('#btn_asset_modal').click();
+                    $('#btn_data_modal').click();
                     location.reload()
                 }
             }
@@ -289,7 +289,7 @@
             $form.ajaxSubmit({success: success});
         });
 
-        $('#btn_asset_edit').click(function () {
+        $('#btn_data_edit').click(function () {
             $.ajax({
                 method: "post",
                 dataType: "json",
@@ -307,7 +307,7 @@
                     content: $("#content").val(),
                 },
                 success: function (data) {
-                    $('#btn_asset_modal').click();
+                    $('#btn_data_modal').click();
                     location.reload()
                 }
             })
@@ -335,7 +335,7 @@
         }
         var currentId = null;
 
-        $("#btn_asset_edit").click(function () {
+        $("#btn_data_edit").click(function () {
             self.location = currentId + "/change/";
         });
 

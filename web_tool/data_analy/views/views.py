@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from django.views.generic import FormView, UpdateView
+from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
 from common.mixins import JSONResponseMixin, AdminUserRequiredMixin
 from common.utils import get_object_or_none
 from .. import forms
@@ -36,67 +37,70 @@ def fitfunc_v(request):
     context['hello'] = 'Hello World!'
     return render(request, 'data_analy/data_index.html', context)
 
-def data_list(request):
-    queryset = Assets.objects.all()
-    qd = btUrldecode(request.GET, url='asset')
 
-    totals = queryset.filter(**qd['query']).count()
-    devices = queryset.filter(**qd['query']).order_by(qd['orderName'])[qd['start']:qd['offset']]
+def data_list(request):
+    # queryset = Assets.objects.all()
+    # qd = btUrldecode(request.GET, url='asset')
+    #
+    # totals = queryset.filter(**qd['query']).count()
+    # devices = queryset.filter(**qd['query']).order_by(qd['orderName'])[qd['start']:qd['offset']]
 
     return JsonResponse({
-        'total': totals,
-        'data': query2dict(devices, url='asset'),
-        '_': request.GET.get('_', 0)
+        # 'total': totals,
+        # 'data': query2dict(devices, url='asset'),
+        # '_': request.GET.get('_', 0)
     })
+
 
 # @login_required
 def data_index(request):
     tmp_path = os.path.join("..", "test.xlsx")
     data = pd.read_excel(io=tmp_path, sheet_name='Sheet1', header=0)
-    print(data)
     collist = data.columns
     widgeto = {
-    row: oforms.TextInput(attrs={'id': 'search_{}'.format(row), 'name': 's_{}'.format(row), 'class': 'col-sm-6'}) for
-    row in collist}
+        row: oforms.TextInput(attrs={'id': 'search_{}'.format(row), 'name': 's_{}'.format(row), 'class': 'col-sm-6'})
+        for
+        row in collist}
 
-    class Modeln:
-        def __init__(self):
-            pass
-
-    class DataSearchFormn:
-        class Meta:
-            model = Modeln
-            fields = collist
-            widgets = widgeto
-            # fields = ['purchase', 'num', 'type', 'model', 'serial', 'supplier', 'status', 'brand', 'expired']
-            # widgets = {
-            #     'purchase': oforms.Select(
-            #         attrs={'id': 'search_purchase', 'name': 's_purchase', 'style': 'height: 38px;',
-            #                'class': 'col-sm-6'}),
-            #     'num': oforms.TextInput(attrs={'id': 'search_num', 'name': 's_num', 'class': 'col-sm-6'}),
-            #     'type': oforms.Select(
-            #         attrs={'id': 'search_type', 'name': 's_type', 'style': 'height: 38px;', 'class': 'col-sm-6'}),
-            #     'model': oforms.TextInput(attrs={'id': 'search_model', 'name': 's_model', 'class': 'col-sm-6'}),
-            #     'serial': oforms.TextInput(attrs={'id': 'search_serial', 'name': 's_serial', 'class': 'col-sm-6'}),
-            #     'supplier': oforms.TextInput(
-            #         attrs={'id': 'search_supplier', 'name': 's_supplier', 'class': 'col-sm-6'}),
-            #     'status': oforms.Select(
-            #         attrs={'id': 'search_status', 'name': 's_status', 'style': 'height: 38px;', 'class': 'col-sm-6'}),
-            #     'brand': oforms.TextInput(attrs={'id': 'search_brand', 'name': 's_brand', 'class': 'col-sm-6'}),
-            #     'expired': oforms.DateTimeInput(
-            #         attrs={'id': 'search_expired', 'name': 's_expired', 'class': 'col-sm-6'}),
-            # }
-
-    sform = DataSearchFormn()
+    # class Modeln:
+    #     def __init__(self):
+    #         pass
+    #
+    # class DataSearchFormn:
+    #     class Meta:
+    #         model = Modeln
+    #         fields = collist
+    #         widgets = widgeto
+    #         # fields = ['purchase', 'num', 'type', 'model', 'serial', 'supplier', 'status', 'brand', 'expired']
+    #         # widgets = {
+    #         #     'purchase': oforms.Select(
+    #         #         attrs={'id': 'search_purchase', 'name': 's_purchase', 'style': 'height: 38px;',
+    #         #                'class': 'col-sm-6'}),
+    #         #     'num': oforms.TextInput(attrs={'id': 'search_num', 'name': 's_num', 'class': 'col-sm-6'}),
+    #         #     'type': oforms.Select(
+    #         #         attrs={'id': 'search_type', 'name': 's_type', 'style': 'height: 38px;', 'class': 'col-sm-6'}),
+    #         #     'model': oforms.TextInput(attrs={'id': 'search_model', 'name': 's_model', 'class': 'col-sm-6'}),
+    #         #     'serial': oforms.TextInput(attrs={'id': 'search_serial', 'name': 's_serial', 'class': 'col-sm-6'}),
+    #         #     'supplier': oforms.TextInput(
+    #         #         attrs={'id': 'search_supplier', 'name': 's_supplier', 'class': 'col-sm-6'}),
+    #         #     'status': oforms.Select(
+    #         #         attrs={'id': 'search_status', 'name': 's_status', 'style': 'height: 38px;', 'class': 'col-sm-6'}),
+    #         #     'brand': oforms.TextInput(attrs={'id': 'search_brand', 'name': 's_brand', 'class': 'col-sm-6'}),
+    #         #     'expired': oforms.DateTimeInput(
+    #         #         attrs={'id': 'search_expired', 'name': 's_expired', 'class': 'col-sm-6'}),
+    #         # }
+    #
+    # sform = DataSearchFormn()
     # sform = {}
     # Model = {}
     # cform = forms.DataAddForm()
     # cform = {}
     return render(request, 'data_analy/data_index.html', {
-        'searchForm': sform,
+        # 'searchForm': sform,
         # 'createForm': cform,
-        'collist': collist,
+        # 'collist': collist,
     })
+
 
 class DataExportView(View):
     def get(self, request, *args, **kwargs):
@@ -147,22 +151,23 @@ class DataExportView(View):
         url = reverse_lazy('assets:asset-export') + '?spm=%s' % spm
         return JsonResponse({'redirect': url})
 
-class BulkImportDataView(AdminUserRequiredMixin, JSONResponseMixin, FormView):
+
+class BulkImportDataView(JSONResponseMixin, FormView):
     form_class = forms.FileForm
 
     def form_valid(self, form):
         file = form.cleaned_data['file']
+        print(999)
         wb = xlrd.open_workbook(filename=None, file_contents=file.read())
         sheet1 = wb.sheet_by_index(0)  # 第一个
         header_ = sheet1.row_values(0)  # 表格头
         # fields = [field for field in Purchase._meta.fields]
-        print(sheet1.row_values())
-        mapping_reverse = {field.verbose_name: field.name for field in fields}
-        attr = [mapping_reverse.get(n, None) for n in header_]
-        if None in attr:
-            data = {'valid': False, 'msg': 'Must be same format as template or export file'}
-            return self.render_json_response(data)
-
+        print(header_, sheet1.row_values(1))
+        # mapping_reverse = {field.verbose_name: field.name for field in fields}
+        # attr = [mapping_reverse.get(n, None) for n in header_]
+        # if None in attr:
+        #     data = {'valid': False, 'msg': 'Must be same format as template or export file'}
+        #     return self.render_json_response(data)
         created, updated, failed, purchase = [], [], [], []
         lines = 1
         for i in range(1, sheet1.nrows):  # 遍历每行表格
@@ -213,23 +218,8 @@ class BulkImportDataView(AdminUserRequiredMixin, JSONResponseMixin, FormView):
                 except Exception as e:
                     failed.append('%s: %s' % (purchase_dict['num'], str(e)))
             lines += 1
-        if purchase:
-            try:
-                Purchase.objects.bulk_create(purchase)
-            except IntegrityError as e:
-                # map(lambda x: failed.append(x.num), assets)
-                for i in purchase:
-                    failed.append(i.num)
-                created = []
         data = {
             'created': created,
-            'created_info': '创建 {}'.format(len(created)),
-            'updated': updated,
-            'updated_info': '更新 {}'.format(len(updated)),
-            'failed': failed,
-            'failed_info': '失败 {}'.format(len(failed)),
-            'valid': True,
-            'msg': '创建: {}. 更新: {}, 失败: {}'.format(len(created), len(updated), len(failed))
         }
         return self.render_json_response(data)
 
@@ -245,3 +235,43 @@ def data_add(request):
             raise form.error_class
     else:
         return HttpResponseRedirect(reverse('assets:asset-index'))
+
+
+def duty_batchin(request):
+    # 1.初始准备
+    ret_url = '/op/calendar/'
+    if os.path.exists('./upload/input'):
+        pass
+    else:
+        os.makedirs('./upload/input')
+    inputname = os.path.join("./upload/input", "值日_导入.xls")
+
+    # 2.上传文件
+    if request.method == 'POST':
+        # request.FILES["myfile"]或者request.FILES.get("myfile", None)
+        myFile = request.FILES.get("file", None)  # 获取上传的文件，如果没有文件，则默认为None
+        if not myFile:
+            return HttpResponse("no files for upload!")
+        destination = open(inputname, 'wb+')  # 打开特定的文件进行二进制的写操作
+        for chunk in myFile.chunks():  # 分块写入文件
+            destination.write(chunk)
+        destination.close()
+        # return redirect(ret_url)
+    else:
+        return render(request, 'upfile.html', {'menu_url': ret_url, 'title': '编辑'})
+
+    # 3.导入文件
+    tablename = 'duty_dutytab'
+    # 忽略 字符 数组
+    ignarr = ['duty_timet', 'duty_even']
+    # 添加 字段和默认值 数组
+    addarr = [[], []]
+    # 执行转换
+    try:
+        res = excel2mysql(inputname, tablename, ignarr, addarr)
+        if res is True:
+            return redirect(ret_url)
+        else:
+            return HttpResponse(res)
+    except Exception as e:
+        return HttpResponse(e)

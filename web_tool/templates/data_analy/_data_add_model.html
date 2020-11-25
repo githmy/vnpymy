@@ -1,4 +1,4 @@
-<div aria-hidden="true" role="dialog" id="asset_add_modal" class="modal inmodal">
+<div aria-hidden="true" role="dialog" id="data_add_modal" class="modal inmodal">
     <div class="modal-dialog" style="width: 500px;margin: 150px auto">
         <div class="modal-content animated fadeIn">
             <div class="modal-header">
@@ -7,7 +7,7 @@
                 <h4 class="modal-title">添加</h4>
             </div>
             <div class="modal-body">
-                <form action="{% url "data_analy:data-add" %}" method="post" class="form-horizontal" id="fm_asset_add">
+                <form action="{% url "data_analy:data-add" %}" method="post" class="form-horizontal" id="fm_data_add">
                     {% csrf_token %}
                     {#                                    {{ createForm.as_p }}#}
                     <div class="row">
@@ -16,60 +16,6 @@
                         </div>
                         <div class="col-sm-9">
                             {{ createForm.purchase }}
-                        </div>
-                    </div>
-                    <br>
-                    <div class="row">
-                        <div class="col-sm-3">
-                            <span>资产编号</span>
-                        </div>
-                        <div class="col-sm-9">
-                            {{ createForm.num }}
-                        </div>
-                    </div>
-                    <br>
-                    <div class="row">
-                        <div class="col-sm-3">
-                            <span>设备类型</span>
-                        </div>
-                        <div class="col-sm-9">
-                            {{ createForm.type }}
-                        </div>
-                    </div>
-                    <br>
-                    <div class="row">
-                        <div class="col-sm-3">
-                            <span>型号</span>
-                        </div>
-                        <div class="col-sm-9">
-                            {{ createForm.model }}
-                        </div>
-                    </div>
-                    <br>
-                    <div class="row">
-                        <div class="col-sm-3">
-                            <span>品牌</span>
-                        </div>
-                        <div class="col-sm-9">
-                            {{ createForm.brand }}
-                        </div>
-                    </div>
-                    <br>
-                    <div class="row">
-                        <div class="col-sm-3">
-                            <span>序列号</span>
-                        </div>
-                        <div class="col-sm-9">
-                            {{ createForm.serial }}
-                        </div>
-                    </div>
-                    <br>
-                    <div class="row">
-                        <div class="col-sm-3">
-                            <span>供应商</span>
-                        </div>
-                        <div class="col-sm-9">
-                            {{ createForm.supplier }}
                         </div>
                     </div>
                     <br>
@@ -86,15 +32,6 @@
                     <br>
                     <div class="row">
                         <div class="col-sm-3">
-                            <span>状态</span>
-                        </div>
-                        <div class="col-sm-9">
-                            {{ createForm.status }}
-                        </div>
-                    </div>
-                    <br>
-                    <div class="row">
-                        <div class="col-sm-3">
                             <span>备注</span>
                         </div>
                         <div class="col-sm-9">
@@ -104,8 +41,8 @@
                 </form>
                 <br>
                 <div class="modal-footer">
-                    <button data-dismiss="modal" class="btn btn-white" type="button" id="btn_asset_modal">关闭</button>
-                    <button class="btn btn-primary" type="button" id="btn_asset_add">确认</button>
+                    <button data-dismiss="modal" class="btn btn-white" type="button" id="btn_data_modal">关闭</button>
+                    <button class="btn btn-primary" type="button" id="btn_data_add">确认</button>
                 </div>
             </div>
         </div>
