@@ -1,0 +1,113 @@
+<div aria-hidden="true" role="dialog" id="asset_add_modal" class="modal inmodal">
+    <div class="modal-dialog" style="width: 500px;margin: 150px auto">
+        <div class="modal-content animated fadeIn">
+            <div class="modal-header">
+                <button data-dismiss="modal" class="close" type="button"><span
+                        aria-hidden="true">×</span><span class="sr-only">Close</span></button>
+                <h4 class="modal-title">添加</h4>
+            </div>
+            <div class="modal-body">
+                <form action="{% url "data_analy:data-add" %}" method="post" class="form-horizontal" id="fm_asset_add">
+                    {% csrf_token %}
+                    {#                                    {{ createForm.as_p }}#}
+                    <div class="row">
+                        <div class="col-sm-3">
+                            <span>{{ createForm.purchase.label }}</span>
+                        </div>
+                        <div class="col-sm-9">
+                            {{ createForm.purchase }}
+                        </div>
+                    </div>
+                    <br>
+                    <div class="row">
+                        <div class="col-sm-3">
+                            <span>资产编号</span>
+                        </div>
+                        <div class="col-sm-9">
+                            {{ createForm.num }}
+                        </div>
+                    </div>
+                    <br>
+                    <div class="row">
+                        <div class="col-sm-3">
+                            <span>设备类型</span>
+                        </div>
+                        <div class="col-sm-9">
+                            {{ createForm.type }}
+                        </div>
+                    </div>
+                    <br>
+                    <div class="row">
+                        <div class="col-sm-3">
+                            <span>型号</span>
+                        </div>
+                        <div class="col-sm-9">
+                            {{ createForm.model }}
+                        </div>
+                    </div>
+                    <br>
+                    <div class="row">
+                        <div class="col-sm-3">
+                            <span>品牌</span>
+                        </div>
+                        <div class="col-sm-9">
+                            {{ createForm.brand }}
+                        </div>
+                    </div>
+                    <br>
+                    <div class="row">
+                        <div class="col-sm-3">
+                            <span>序列号</span>
+                        </div>
+                        <div class="col-sm-9">
+                            {{ createForm.serial }}
+                        </div>
+                    </div>
+                    <br>
+                    <div class="row">
+                        <div class="col-sm-3">
+                            <span>供应商</span>
+                        </div>
+                        <div class="col-sm-9">
+                            {{ createForm.supplier }}
+                        </div>
+                    </div>
+                    <br>
+                    <div class="row">
+                        <div class="col-sm-3">
+                            <span>维保日期</span>
+                        </div>
+                        <div class="col-sm-9">
+                        <span style="display: block;float: left;width: 25px;height: 25px;background: #ccc;margin-right: 2px">
+                            <i class="fa fa-calculator" style="margin: 6px"></i></span>
+                            <input value="请选择日期" name="expired" id="id_expired" style="width: 150px;height: 25px">
+                        </div>
+                    </div>
+                    <br>
+                    <div class="row">
+                        <div class="col-sm-3">
+                            <span>状态</span>
+                        </div>
+                        <div class="col-sm-9">
+                            {{ createForm.status }}
+                        </div>
+                    </div>
+                    <br>
+                    <div class="row">
+                        <div class="col-sm-3">
+                            <span>备注</span>
+                        </div>
+                        <div class="col-sm-9">
+                            {{ createForm.content }}
+                        </div>
+                    </div>
+                </form>
+                <br>
+                <div class="modal-footer">
+                    <button data-dismiss="modal" class="btn btn-white" type="button" id="btn_asset_modal">关闭</button>
+                    <button class="btn btn-primary" type="button" id="btn_asset_add">确认</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

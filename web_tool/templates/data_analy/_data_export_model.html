@@ -1,0 +1,43 @@
+<div aria-hidden="true" role="dialog" id="asset_import_modal" class="modal inmodal">
+    <div class="modal-dialog" style="width: 500px;margin: 150px auto">
+        <div class="modal-content animated fadeIn">
+            <div class="modal-header">
+                <button data-dismiss="modal" class="close" type="button"><span
+                        aria-hidden="true">×</span><span class="sr-only">Close</span></button>
+                <h4 class="modal-title">导入资产</h4>
+                <small></small>
+            </div>
+            <div class="modal-body">
+
+                <form method="post" action="{% url "data_analy:data-import" %}" id="fm_asset_import"
+                      enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label class="control-label" for="id_data_analy">模板</label>
+                        <a href="{% url "data_analy:data-export" %}" style="display: block">下载</a>
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label" for="id_users">资产excel</label>
+                        <input id="id_data_analy" type="file" name="file"/>
+                        <span class="help-block">
+                                如果有ID字段,它将进行ID项更新操作.
+                            </span>
+                    </div>
+                </form>
+                <p>
+                <p class="text-success" id="id_created"></p>
+                <p id="id_created_detail"></p>
+                <p class="text-warning" id="id_updated"></p>
+                <p id="id_updated_detail"></p>
+                <p class="text-danger" id="id_failed"></p>
+                <p id="id_failed_detail"></p>
+                </p>
+
+            </div>
+            <div class="modal-footer">
+                <button data-dismiss="modal" class="btn btn-white" type="button">关闭</button>
+                <button class="btn btn-primary" type="button" id="btn_asset_import">确认</button>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,101 @@
+<div aria-hidden="true" role="dialog" id="asset_detail_modal" class="modal inmodal">
+    <div class="modal-dialog" style="width: 500px;margin: 150px auto">
+        <div class="modal-content animated fadeIn">
+            <div class="modal-header">
+                <button data-dismiss="modal" class="close" type="button"><span
+                        aria-hidden="true">×</span><span class="sr-only">Close</span></button>
+                <h4 class="modal-title">查看</h4>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-sm-3">
+                        <span>资产编号</span>
+                    </div>
+                    <div class="col-sm-9">
+                        <span id="num"></span>
+                    </div>
+                </div>
+                <br>
+                <div class="row">
+                    <div class="col-sm-3">
+                        <span>设备类型</span>
+                    </div>
+                    <div class="col-sm-9">
+                        <span id="type"></span>
+                    </div>
+                </div>
+                <br>
+                <div class="row">
+                    <div class="col-sm-3">
+                        <span>型号</span>
+                    </div>
+                    <div class="col-sm-9">
+                        <span id="model"></span>
+                    </div>
+                </div>
+                <br>
+                <div class="row">
+                    <div class="col-sm-3">
+                        <span>厂商</span>
+                    </div>
+                    <div class="col-sm-9">
+                        <span id="brand"></span>
+                    </div>
+                </div>
+                <br>
+                <div class="row">
+                    <div class="col-sm-3">
+                        <span>序列号</span>
+                    </div>
+                    <div class="col-sm-9">
+                        <span id="serial"></span>
+                    </div>
+                </div>
+                <br>
+                <div class="row">
+                    <div class="col-sm-3">
+                        <span>供应商</span>
+                    </div>
+                    <div class="col-sm-9">
+                        <span id="supplier"></span>
+                    </div>
+                </div>
+                <br>
+                <div class="row">
+                    <div class="col-sm-3">
+                        <span>状态</span>
+                    </div>
+                    <div class="col-sm-9">
+                        <span id="status"></span>
+                    </div>
+                </div>
+                <br>
+                <div class="row">
+                    <div class="col-sm-3">
+                        <span>维保日期</span>
+                    </div>
+                    <div class="col-sm-9">
+                        <span id="expired"></span>
+{#                        <input value="" id="expired" style="width: 180px;height: 25px">#}
+                    </div>
+                </div>
+
+                <br>
+                <div class="row">
+                    <div class="col-sm-3">
+                        <span>备注</span>
+                    </div>
+                    <div class="col-sm-9">
+                        <span id="content"></span>
+                    </div>
+                </div>
+                <br>
+                <div class="modal-footer">
+                    <button data-dismiss="modal" class="btn btn-default" type="button">关闭</button>
+                    <button class="btn btn-primary" type="button" id="btn_asset_edit">修改</button>
+{#                    <button class="btn btn-default" type="button">确定</button>#}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
