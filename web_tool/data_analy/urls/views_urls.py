@@ -4,15 +4,17 @@ from ..views import views
 urlpatterns = [
     # 采购单管理
     url(r'^$', views.index, name='data_analy-index'),
+    url(r'^show/$', views.data_index, name='data_show'),
     url(r'^relation/$', views.relation_v, name='relation_views'),
     url(r'^confidence/$', views.confidence_v, name='confidence_views'),
     url(r'^fitfunc/$', views.fitfunc_v, name='fitfunc_views'),
-    # url(r'^purchase/add/$', views.purchase_add, name='purchase-add'),
-    url(r'^show/$', views.data_index, name='data_show'),
+    url(r'^data_list/$', views.data_list, name='data-list'),
+    url(r'^data/add/$', views.data_add, name='data-add'),
     # url(r'^purchase/(?P<pk>[0-9]+)/change/$', views.PurchaseUpdateView.as_view(), name='purchase-change'),
     # url(r'^purchase/(?P<pk>[0-9]+)/delete/$', views.purchase_delete, name='purchase-delete'),
     # url(r'^purchase/export/$', views.PurchaseExportView.as_view(), name='purchase-export'),
-    # url(r'^import/$', views.BulkImportDataView.as_view(), name='purchase-import'),
+    url(r'^import/$', views.BulkImportDataView.as_view(), name='data-import'),
+    url(r'^export/$', views.DataExportView.as_view(), name='data-export'),
     #
     # # 资产管理
     # url(r'^asset/$', views.asset_index, name='asset-index'),
@@ -52,5 +54,4 @@ urlpatterns = [
     # url(r'^network/(?P<pk>[0-9]+)/change/$', views.NetworkUpdateView.as_view(), name='network-change'),
     # url(r'^network/export/$', views.NetworkExportView.as_view(), name='network-export'),
     # url(r'^network/import/$', views.BulkImportNetworkView.as_view(), name='network-import'),
-
 ]

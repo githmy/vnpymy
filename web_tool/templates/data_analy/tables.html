@@ -7,8 +7,8 @@
     </h1>
     <ol class="breadcrumb">
         <li><a href="/"><i class="fa fa-dashboard"></i>首页</a></li>
-        <li class="active">运维OA</li>
-        <li class="active"><a href="{% url 'data_analy:fitfunc_views' %}">值班列表</a></li>
+        <li class="active">数据分析</li>
+        <li class="active"><a href="{% url 'data_analy:fitfunc_views' %}">指标列表</a></li>
     </ol>
 {% endblock %}
 
@@ -17,51 +17,49 @@
         <div class="row">
             <div class="col-xs-12">
                 <div class="box">
-                    <div class="box-header">
-                        <!--<h3 class="box-title">Data Table With Full Features</h3>-->
-                        {% if perms.moc.add_list %}
-                            <a style="float: right" href="{{ menu_url }}add" class="btn btn-sm">
-                                <i class="fa fa-edit"></i>
-                                {% if add_title %}
-                                    {{ add_title }}
-                                {% else %}
-                                    新增变更
-                                {% endif %}
-                            </a>
-                        {% endif %}
+                    <div class="row">
+                        {% for row in collist %}
+                            <div class="col-sm-2">
+                                <label class="col-sm-6">{{ row }}:</label>
+                                {{ searchForm.num }}
+                            </div>
+                        {% endfor %}
+                        <div class="col-sm-1"></div>
+                        <div class="col-sm-3">
+                            <div class="btn-group" style="float: right">
+                                <button onclick="doQuery()" class="btn btn-default"><i class="fa fa-refresh">&nbsp;&nbsp;刷新</i>
+                                </button>
+                                <button class="btn btn-default" data-toggle="modal" data-target="#asset_import_modal"
+                                        tabindex="0"><i class="fa fa-reply-all">&nbsp;&nbsp;导入</i>
+                                </button>
+                                <button onclick="doExport()" class="btn btn-default"><i class="fa fa-external-link">&nbsp;&nbsp;导出</i>
+                                </button>
+                                <button class="btn btn-default" data-toggle="modal" data-target="#data_add_modal"
+                                        tabindex="0"><i class="fa fa-plus">&nbsp;&nbsp;添加</i></button>
+                            </div>
+                        </div>
                     </div>
                     <!-- /.box-header -->
                     <div class="box-body">
                         <table id="example1" class="table table-bordered table-hover table-striped">
                             <thead>
                             <tr>
-                                <th>变更ID</th>
-                                <th>变更名</th>
-                                <th>变更描述</th>
-                                <th>变更时间</th>
-                                <th>申请人</th>
-                                <th>审核人</th>
-                                <th>变更状态</th>
-                                <th>变更结果</th>
-                                <th>文件操作</th>
-                                <th>字段操作</th>
+                                {% for row in collist %}
+                                    <th>{{ row }}</th>
+                                {% endfor %}
                             </tr>
                             </thead>
 
                             <tfoot>
                             <tr>
-                                <th>变更ID</th>
-                                <th>变更名</th>
-                                <th>变更描述</th>
-                                <th>变更时间</th>
-                                <th>申请人</th>
-                                <th>审核人</th>
-                                <th>变更状态</th>
-                                <th>变更结果</th>
-                                <th>文件操作</th>
-                                <th>字段操作</th>
+                                {% for row in collist %}
+                                    <th>{{ row }}</th>
+                                {% endfor %}
                             </tr>
                             </tfoot>
+                        </table>
+                        <table id="assets-table">
+
                         </table>
 
                     </div>
@@ -137,7 +135,16 @@
 {% endblock %}
 
 {% block ex_script %}
+    <script src="{% static 'ALTE/plugins/datepicker/bootstrap-datetimepicker.js' %}"></script>
     <script>
+        function doQuery() {
+            $('#assets-table').bootstrapTable('refresh');    //刷新表格
+        }
+
+        $(function () {
+            $('#assets-table').bootstrapTable(options);
+        });
+
         var table;
         $(document).ready(function () {
             var menu_url = document.getElementById("menu_url").href;
