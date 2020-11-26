@@ -1,0 +1,183 @@
+{% extends 'data_analy/index.html' %}
+
+{% block body_content_header %}
+    <h1>
+        {{ menu }}
+    </h1>
+    <ol class="breadcrumb">
+        <li><a href="/"><i class="fa fa-dashboard"></i>首页</a></li>
+        <li class="active">数据分析</li>
+        <li class="active"><a href="{% url 'data_analy:confidence_views' %}">置信度</a></li>
+    </ol>
+{% endblock %}
+
+{% block body_content %}
+    <div class="row">
+        <div class="col-xs-12">
+            <div class="box">
+                <div class="box-body">
+                    <table id="data-table">
+
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block ex_head %}
+    <link rel="stylesheet" href="/static/ALTE/plugins/datepicker/bootstrap-datetimepicker.css">
+    <style>
+        input {
+            outline: none;
+        }
+    </style>
+{% endblock %}
+
+{% block ex_script %}
+    <script src="/static/ALTE/plugins/datepicker/bootstrap-datetimepicker.js"></script>
+    <script>
+        $(function () {
+            $('#data-table').bootstrapTable(options);
+        });
+
+        var options = {
+            url: "{% url 'data_analy:api-data-confidence' %}", //  请求url
+            method: 'get',
+            dataType: 'json',
+            contentType: "application/x-www-form-urlencoded",
+            toolbar: "#table-bar", //  工具按钮的哪个容器（一个JQuery选择器）
+            uniqueId: "id",         //  每一行的唯一标识，一般为主键列
+            sortOrder: "asc",       // 排序方式
+            sortable: true,         // 是否启用排序
+            cache: false,           // 是否启用缓存 默认TRUE，一般情况要设置一下这个属性
+            striped: true,                      //是否显示行间隔色
+            queryParams: queryParams,   // 请求函数
+            queryParamsType: 'limit',   // 设置为"undefined",可以获取pageNumber，pageSize，searchText，sortName，sortOrder
+            sidePagination: "server",   //分页方式：client客户端分页，server服务端分页（*）
+            height: $(window).height() - 110,
+            width: $(window).width(),
+            showColumns: false,      //  是否显示右上角内容下拉框
+            showRefresh: false,      //  是否显示右上角刷新按钮
+            showToggle: false,       //  是否显示切换视图（table/card）按钮
+            clickToSelect: true,    //  是否启用单击选中行
+            {#                showPaginationSwitch: true,#}
+            pagination: true,       //  是否显示分页（*）
+            minimumCountColumns: 2,  //  最少允许的列数 clickToSelect: true, //是否启用点击选中行
+            pageNumber: 1,                      // 初始化加载第一页，默认第一页
+            pageSize: 25,                       //  每页的记录行数（*）
+            pageList: [10, 25, 50, 100, 'All'],        //  可供选择的每页的行数（*）
+            paginationPreText: "Previous",
+            paginationNextText: "Next",
+            paginationFirstText: "First",
+            paginationLastText: "Last",
+            showExport: false,               //  导出
+            exportDataType: 'all',          // 导出all
+            responseHandler: responseHandler,
+            columns: [
+                {% for row in collist %}
+                    {
+                        field: '{{ row }}',
+                        title: '{{ row }}',
+                        align: 'center',
+                        valign: 'middle',
+                        sortable: true
+                    },
+                {% endfor %}
+            ]
+        };
+
+        function operateFormatter(value, row, index) {//赋予的参数
+            return '<a href="#" data-toggle="modal" data-target="#data_detail_modal" tabindex="0" onclick=detailTableId(' + row.pk + ')>查看</a><b>|</b>' +
+                '<a href="' + row.pk + '/change/">修改</a><b>|</b>' +
+                '<a href="#" onclick=delTableId(' + row.pk + ')>删除</a>';
+        }
+
+        function queryParams(params) {
+            var param = {
+                expired: $("#search_expired").val(),
+                model: $("#search_model").val(),
+                status: $("#search_status").val(),
+                supplier: $("#search_supplier").val(),
+                serial: $("#search_serial").val(),
+                brand: $("#search_brand").val(),
+                type: $("#search_type").val(),
+                num: $("#search_num").val(),
+                purchase: $("#search_purchase").val(),
+                limit: params.limit,  // 页码大小
+                offset: params.offset, // 页码偏移
+                orderName: params.sort,  //排序列名
+                orderType: params.order
+            };
+            return param;
+        }
+
+        function responseHandler(res) {
+            return {
+                "rows": res.data,
+                "total": res.total
+            };
+        }
+
+
+        function delTableId(pk) {
+            if (confirm("你确定删除吗？")) {
+                $.ajax({
+                    "url": pk + "/delete/",
+                    success: function (data) {
+                        $("#data-table  tbody  tr").each(function () {
+                            var text = $(this).children("td:eq(1)").text();
+                            console.log(text)
+                            if (parseInt(text.trim()) == pk) {
+                                $(this).remove();
+                            }
+                        });
+                    }
+                })
+            }
+            else {
+                return;
+            }
+        }
+        var currentId = null;
+
+    </script>
+
+
+    <script>
+        $("#id_expired").datetimepicker({
+            format: "yyyy-mm-dd",
+            minView: "month",//选择日期后，不会再跳转去选择时分秒
+            autoclose: true,
+            todayBtn: true,
+            language: 'zh-CN',
+            bootcssVer: 3,
+            pickerPosition: "bottom-left"
+        });
+
+        $("#search_expired").datetimepicker({
+            format: "yyyy-mm-dd",
+            minView: "month",//选择日期后，不会再跳转去选择时分秒
+            autoclose: true,
+            todayBtn: true,
+            language: 'zh-CN',
+            bootcssVer: 3,
+            pickerPosition: "bottom-left"
+        });
+
+        $("#expired").datetimepicker({
+            format: "yyyy-mm-dd",
+            minView: "month",//选择日期后，不会再跳转去选择时分秒
+            autoclose: true,
+            todayBtn: true,
+            language: 'zh-CN',
+            bootcssVer: 3,
+            pickerPosition: "bottom-left"
+        });
+        $(".today").css({
+            "text-align": 'center',
+            "background": '#119dee',
+            "color": '#fff'
+        });
+    </script>
+{% endblock %}
