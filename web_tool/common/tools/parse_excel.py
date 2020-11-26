@@ -10,7 +10,7 @@ def read_excel():
     # 打开文件
     workbook = xlrd.open_workbook(r'v2.xlsx')
     # 获取所有sheet
-    print workbook.sheet_names()  # [u'sheet1', u'sheet2']
+    print(workbook.sheet_names())  # [u'sheet1', u'sheet2']
     # sheet2_name = workbook.sheet_names()[0]
 
     # 根据sheet索引或者名称获取sheet内容
@@ -18,7 +18,7 @@ def read_excel():
     sheet2 = workbook.sheet_by_name('Sheet1')
 
     # sheet的名称，行数，列数
-    print sheet2.name, sheet2.nrows, sheet2.ncols
+    print(sheet2.name, sheet2.nrows, sheet2.ncols)
 
     # 获取整行和整列的值（数组）
     # rows = sheet2.row_values(3)  # 获取第四行内容

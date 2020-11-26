@@ -7,7 +7,7 @@
     <ol class="breadcrumb">
         <li><a href="/"><i class="fa fa-dashboard"></i>首页</a></li>
         <li class="active">数据分析</li>
-        <li class="active"><a href="{% url 'data_analy:fitfunc_views' %}">指标列表</a></li>
+        <li class="active"><a href="{% url 'data_analy:data_show' %}">数据列表</a></li>
     </ol>
 {% endblock %}
 
@@ -15,49 +15,36 @@
     <div class="row">
         <div class="col-xs-12">
             <div class="box">
-                <div id="table-bar">
-                    <div class="row">
-                        {#                        {% for row in collist %}#}
-                        {#                            <div class="col-sm-2">#}
-                        {#                                <label class="col-sm-6">{{ row }}:</label>#}
-                        {#                                {{ searchForm.num }}#}
-                        {#                            </div>#}
-                        {#                        {% endfor %}#}
-                        {#                        <div class="col-sm-1"></div>#}
-                        <div class="col-sm-2"></div>
-                        <div class="col-sm-2">
-                            <div class="btn-group" style="float: right">
-                                <button onclick="doQuery()" class="btn btn-default"><i class="fa fa-refresh">&nbsp;&nbsp;刷新</i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="col-sm-2">
-                            <button class="btn btn-default" data-toggle="modal" data-target="#data_import_modal"
-                                    tabindex="0"><i class="fa fa-reply-all">&nbsp;&nbsp;导入</i>
-                            </button>
-                        </div>
-                        <div class="col-sm-2">
-                            <button onclick="doExport()" class="btn btn-default"><i class="fa fa-external-link">&nbsp;&nbsp;导出</i>
-                            </button>
-                        </div>
-                        <div class="col-sm-2">
-                            <button class="btn btn-default" data-toggle="modal" data-target="#data_add_modal"
-                                    tabindex="0"><i class="fa fa-plus">&nbsp;&nbsp;添加</i></button>
-                        </div>
-                        {#                    </div>#}
-                        {#                    <br>#}
-                        {#                    <div class="row">#}
-                        {#                        {% for row in collist %}#}
-                        {#                        <div class="col-sm-2">#}
-                        {#                            <label class="col-sm-6">{{ row }}: </label>#}
-                        {#                            {{ searchForm.expired }}#}
-                        {#                        </div>#}
-                        {#                        {% endfor %}#}
-                        <div class="col-sm-2">
-                            <button onclick="doQuery()" class="btn btn-primary btn-flat"
-                                    style="display:block;margin-top: 2px"><i
-                                    class="fa fa-search">&nbsp;&nbsp;查询</i></button>
-                        </div>
+                <p></p>
+                {#                <div id="table-bar">#}
+                <div class="row">
+                    <div class="col-sm-1"></div>
+                    <div class="col-sm-1">
+                        <button onclick="doQuery()" class="btn btn-default"><i class="fa fa-refresh">&nbsp;&nbsp;刷新</i>
+                        </button>
+                    </div>
+                    <div class="col-sm-1">
+                        <button class="btn btn-default" data-toggle="modal" data-target="#data_import_modal"
+                                tabindex="0"><i class="fa fa-reply-all">&nbsp;&nbsp;导入</i>
+                        </button>
+                    </div>
+                    {#                    <div class="col-sm-1">#}
+                    {#                        <button onclick="doExport()" class="btn btn-default"><i class="fa fa-external-link">&nbsp;&nbsp;导出</i>#}
+                    {#                        </button>#}
+                    {#                    </div>#}
+                    {#                    <div class="col-sm-1">#}
+                    {#                        <button class="btn btn-default" data-toggle="modal" data-target="#data_add_modal"#}
+                    {#                                tabindex="0"><i class="fa fa-plus">&nbsp;&nbsp;添加</i></button>#}
+                    {#                    </div>#}
+                    <div class="col-sm-1">
+                        <button onclick="doQuery()" class="btn btn-primary btn-flat"
+                                style="display:block;margin-top: 2px"><i
+                                class="fa fa-search">&nbsp;&nbsp;查询</i></button>
+                    </div>
+                    <div class="col-sm-1">
+                        <button onclick="doClean()" class="btn btn-primary btn-flat"
+                                style="display:block;margin-top: 2px"><i
+                                class="fa fa-search">&nbsp;&nbsp;清空</i></button>
                     </div>
                 </div>
 
@@ -68,8 +55,6 @@
                 </div>
 
                 {% include "data_analy/_data_export_model.html" %}
-                {% include "data_analy/_data_add_model.html" %}
-                {#                {% include "data_analy/_data_detail_model.html" %}#}
             </div>
         </div>
     </div>
@@ -90,6 +75,25 @@
         function doQuery() {
             $('#data-table').bootstrapTable('refresh');    //刷新表格
         }
+        function doClean() {
+            $.ajax({
+                url: "{% url 'data_analy:clean' %}",
+                type: 'GET',
+                dataType: '',
+                data: {},
+                success: function () {
+                    {#                    $('#data-table').bootstrapTable('refresh');#}
+                    location.replace(location.href);
+                },
+                error: function () {
+                    alert("清空失败")
+                }
+            })
+        }
+
+        {#        $("#btn_data_edit").click(function () {#}
+        {#            self.location = currentId + "/change/";#}
+        {#        });#}
 
         $(function () {
             $('#data-table').bootstrapTable(options);
@@ -138,54 +142,17 @@
                     align: 'center',
                     valign: 'middle',
                     sortable: true
-                }, {
-                    field: 'num',
-                    title: '编号',
-                    align: 'center',
-                    valign: 'middle',
-                    sortable: true
-                }, {
-                    field: 'type',
-                    title: '类型',
-                    align: 'center',
-                    valign: 'middle'
-                }, {
-                    field: 'model',
-                    title: '型号',
-                    align: 'center',
-                    valign: 'middle',
-                    sortable: true
-                }, {
-                    field: 'brand',
-                    title: '厂商',
-                    align: 'center',
-                    valign: 'middle'
-                }, {
-                    field: 'serial',
-                    title: '序列号',
-                    align: 'center',
-                    valign: 'left'
-                }, {
-                    field: 'supplier',
-                    title: '供应商',
-                    align: 'center',
-                    valign: 'middle'
-                }, {
-                    field: 'status',
-                    title: '状态',
-                    align: 'center',
-                    valign: 'middle'
-                }, {
-                    field: 'expired',
-                    title: '过保时间',
-                    align: 'center',
-                    valign: 'middle'
-                }, {
-                    field: 'content',
-                    title: '备注',
-                    align: 'center',
-                    valign: 'middle'
-                }, {
+                },
+                {% for row in collist %}
+                    {
+                        field: '{{ row }}',
+                        title: '{{ row }}',
+                        align: 'center',
+                        valign: 'middle',
+                        sortable: true
+                    },
+                {% endfor %}
+                {
                     field: 'operate',
                     title: '操作',
                     align: 'center',
@@ -237,7 +204,6 @@
                 datas.shift();
             }
 
-            console.log(datas);
             $.ajax({
                 url: "{% url 'data_analy:data-export' %}",
                 method: 'POST',
@@ -260,14 +226,10 @@
                 if (data.valid === false) {
                     $('<span />', {class: 'help-block text-danger'}).html(data.msg).insertAfter($('#id_datas'));
                 } else {
-                    $('#id_created').html(data.created_info);
-                    $('#id_created_detail').html(data.created.join(', '));
-                    $('#id_updated').html(data.updated_info);
-                    $('#id_updated_detail').html(data.updated.join(', '));
-                    $('#id_failed').html(data.failed_info);
-                    $('#id_failed_detail').html(data.failed.join(', '));
+                    $('#id_created').html(data.created);
                     $('#btn_data_import').hide();
                     doQuery();
+                    location.replace(location.href);
                 }
             }
 
