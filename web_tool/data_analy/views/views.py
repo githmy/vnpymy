@@ -49,6 +49,7 @@ def data_list(request):
     "数据 原始输出 内容"
     if len(gdatas.keys()) > 0:
         tpd = gdatas[list(gdatas.keys())[0]]
+        # print(tpd.values)
         return JsonResponse({
             'total': tpd.shape[0],
             'data': query2dict(tpd),
@@ -126,12 +127,28 @@ def fitfunc_v(request):
     "拟合 汇总输出 表头"
     context = {}
     context["collist"] = []
+    # fdatas = {list(gdatas.keys())[0]:}
+    # tpd = rdatas[list(rdatas.keys())[0]]
     if len(fdatas.keys()) > 0:
-        context["collist"] = ["a b", "a c", "b c"]
+        context["collist"] = ["namepair", "train_test_num", "best_degree_score", "all_degree_score"]
     return render(request, 'data_analy/fit_index.html', context)
 
 
 def data_fit(request):
+    "拟合 汇总输出 内容"
+    from common.tools.data_fit import regression_check
+    if len(gdatas.keys()) > 0:
+        tpd = fdatas[list(gdatas.keys())[0]]
+        return JsonResponse({
+            'total': tpd.shape[0],
+            'data': query2dict(tpd),
+            '_': request.GET.get('_', 0)
+        })
+    else:
+        return JsonResponse({})
+
+
+def data_fit_bak(request):
     "拟合 汇总输出 内容"
     if len(fdatas.keys()) > 0:
         tpd = fdatas[list(fdatas.keys())[0]]
