@@ -65,7 +65,7 @@
             pagination: true,       //  是否显示分页（*）
             minimumCountColumns: 2,  //  最少允许的列数 clickToSelect: true, //是否启用点击选中行
             pageNumber: 1,                      // 初始化加载第一页，默认第一页
-            pageSize: 'All',                       //  每页的记录行数（*）
+            pageSize: 25,                       //  每页的记录行数（*）
             pageList: [10, 25, 50, 100, 'All'],        //  可供选择的每页的行数（*）
             paginationPreText: "Previous",
             paginationNextText: "Next",
@@ -75,6 +75,16 @@
             exportDataType: 'all',          // 导出all
             responseHandler: responseHandler,
             columns: [
+                {
+                    checkbox: true
+                },
+                {
+                    field: 'pk',
+                    title: 'ID',
+                    align: 'center',
+                    valign: 'middle',
+                    sortable: true
+                },
                 {% for row in collist %}
                     {
                         field: '{{ row }}',

@@ -15,6 +15,7 @@ import datetime
 import pandas as pd
 import os
 from io import StringIO, BytesIO
+import copy
 
 # Create your views here.
 
@@ -30,6 +31,25 @@ cdatas = {}
 # 数据的拟合
 global fdatas
 fdatas = {}
+
+
+def btUrldecode(urldata, colnames):
+    trim = dict()
+    trim['query'] = dict()
+    # 分片
+    trim['start'] = int(urldata.get('offset', 0))  # offset 偏移位置
+    entries = urldata.get('limit', 25)  # 每页显示条目数
+    trim['offset'] = int(trim['start']) + int(entries)  # 偏移条数位置
+    # 排序
+    order_type = urldata.get('orderType', 'asc')
+    order_col = urldata.get('orderName', 'pk')
+    trim['orderName'] = order_col if order_type == u'asc' else u'-' + order_col
+
+    # 查找表 每列
+    for colname in colnames:
+        if urldata.get(colname):
+            trim['query'][colname] = urldata.get(colname)
+    return trim
 
 
 def index(request):
@@ -50,10 +70,21 @@ def data_list(request):
     "数据 原始输出 内容"
     if len(gdatas.keys()) > 0:
         tpd = gdatas[list(gdatas.keys())[0]]
-        # print(tpd.values)
+        qd = btUrldecode(request.GET, tpd.columns)
+        totals = tpd.shape[0]
+        # 排序分页
+        if qd['orderName'] != "pk":
+            if qd['orderName'].startswith("-"):
+                qd['orderName'] = qd['orderName'].lstrip("-")
+                newtpd = tpd.sort_values(by=[qd['orderName']], ascending=[False])
+            else:
+                newtpd = tpd.sort_values(by=[qd['orderName']])
+        else:
+            newtpd = copy.deepcopy(tpd)
+        newtpd = newtpd.iloc[qd['start']:qd['offset'], :]
         return JsonResponse({
-            'total': tpd.shape[0],
-            'data': query2dict(tpd),
+            'total': totals,
+            'data': query2dict(newtpd),
             '_': request.GET.get('_', 0)
         })
     else:
@@ -136,13 +167,31 @@ def fitfunc_v(request):
 def data_fit(request):
     "拟合 汇总输出 内容"
     if len(gdatas.keys()) > 0:
-        tpd = gdatas[list(gdatas.keys())[0]]
-        showjson = iter_regression4allxy(tpd, max_combnum=2, test_size=0.2)
-        fdatas = {list(gdatas.keys())[0]: showjson}
+        if len(fdatas) > 0:
+            ttnewtpd = fdatas[list(gdatas.keys())[0]]
+        else:
+            tpd = gdatas[list(gdatas.keys())[0]]
+            showjson = iter_regression4allxy(tpd, max_combnum=2, test_size=0.2)
+            fdatas[list(gdatas.keys())[0]] = pd.DataFrame(showjson)
+            ttnewtpd = fdatas[list(gdatas.keys())[0]]
+        qd = btUrldecode(request.GET, ttnewtpd.columns)
+        print(qd)
+        totals = ttnewtpd.shape[0]
+        # 排序分页
+        if qd['orderName'] != "pk":
+            if qd['orderName'].startswith("-"):
+                qd['orderName'] = qd['orderName'].lstrip("-")
+                newtpd = ttnewtpd.sort_values(by=[qd['orderName']], ascending=[False])
+            else:
+                newtpd = ttnewtpd.sort_values(by=[qd['orderName']])
+        else:
+            newtpd = copy.deepcopy(ttnewtpd)
+        newtpd = newtpd.iloc[qd['start']:qd['offset'], :]
+        print(newtpd)
         return JsonResponse({
-            'total': len(showjson["namepair"]),
-            'data': queryjson2dict(showjson),
-            '_': request.GET.get('_', 0),
+            'total': totals,
+            'data': query2dict(newtpd),
+            '_': request.GET.get('_', 0)
         })
     else:
         return JsonResponse({})
