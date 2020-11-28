@@ -175,7 +175,6 @@ def data_fit(request):
             fdatas[list(gdatas.keys())[0]] = pd.DataFrame(showjson)
             ttnewtpd = fdatas[list(gdatas.keys())[0]]
         qd = btUrldecode(request.GET, ttnewtpd.columns)
-        print(qd)
         totals = ttnewtpd.shape[0]
         # 排序分页
         if qd['orderName'] != "pk":
@@ -187,7 +186,6 @@ def data_fit(request):
         else:
             newtpd = copy.deepcopy(ttnewtpd)
         newtpd = newtpd.iloc[qd['start']:qd['offset'], :]
-        print(newtpd)
         return JsonResponse({
             'total': totals,
             'data': query2dict(newtpd),
