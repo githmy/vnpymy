@@ -3,6 +3,7 @@ from django.views.generic import FormView, UpdateView
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
 from common.mixins import JSONResponseMixin, AdminUserRequiredMixin
 from common.utils import get_object_or_none
+from common.tools.data_fit import iter_regression4allxy
 from .. import forms
 from django import forms as oforms
 from django.views import View
@@ -127,22 +128,21 @@ def fitfunc_v(request):
     "拟合 汇总输出 表头"
     context = {}
     context["collist"] = []
-    # fdatas = {list(gdatas.keys())[0]:}
-    # tpd = rdatas[list(rdatas.keys())[0]]
-    if len(fdatas.keys()) > 0:
-        context["collist"] = ["namepair", "train_test_num", "best_degree_score", "all_degree_score"]
+    if len(gdatas.keys()) > 0:
+        context["collist"] = ["namepair", "best_degree_score", "max_combnum_vali_num", "all_degree_score", "best_coff"]
     return render(request, 'data_analy/fit_index.html', context)
 
 
 def data_fit(request):
     "拟合 汇总输出 内容"
-    from common.tools.data_fit import regression_check
     if len(gdatas.keys()) > 0:
-        tpd = fdatas[list(gdatas.keys())[0]]
+        tpd = gdatas[list(gdatas.keys())[0]]
+        showjson = iter_regression4allxy(tpd, max_combnum=2, test_size=0.2)
+        fdatas = {list(gdatas.keys())[0]: showjson}
         return JsonResponse({
-            'total': tpd.shape[0],
-            'data': query2dict(tpd),
-            '_': request.GET.get('_', 0)
+            'total': len(showjson["namepair"]),
+            'data': queryjson2dict(showjson),
+            '_': request.GET.get('_', 0),
         })
     else:
         return JsonResponse({})
@@ -181,6 +181,15 @@ def query2dict(t_pandas):
     lists = []
     for id1, values in t_pandas.iterrows():
         lists.append({"pk": id1, **values})
+    return lists
+
+
+def queryjson2dict(t_json):
+    lists = []
+    keylist = list(t_json.keys())
+    for values in zip(*t_json.values()):
+        lists.append({key: val for key, val in zip(keylist, values)})
+    # print(lists)
     return lists
 
 
