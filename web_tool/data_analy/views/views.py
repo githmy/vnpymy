@@ -4,6 +4,7 @@ from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
 from common.mixins import JSONResponseMixin, AdminUserRequiredMixin
 from common.utils import get_object_or_none
 from common.tools.data_fit import iter_regression4allxy
+from common.tools.data_confidenc import show_confids
 from .. import forms
 from django import forms as oforms
 from django.views import View
@@ -91,15 +92,15 @@ def data_list(request):
         return JsonResponse({})
 
 
-def nindex_v(request):
+def prob_check_v(request):
     "指标 汇总输出 表头"
     context = {}
     # 1. 列名 2. 平稳性 3.
-    context["collist"] = ["names", "mean", "std", "std"]
-    return render(request, 'data_analy/nindex_index.html', context)
+    context["collist"] = ["names", "mean", "std"]
+    return render(request, 'data_analy/prob_check_index.html', context)
 
 
-def data_nindex(request):
+def data_prob_check(request):
     "指标 汇总输出 内容"
     if len(rdatas.keys()) > 0:
         tpd = rdatas[list(rdatas.keys())[0]]
@@ -144,6 +145,27 @@ def confidence_v(request):
 
 def data_confidence(request):
     "置信度 汇总输出 内容"
+    if len(gdatas.keys()) > 0:
+        if len(cdatas) > 0:
+            ttnewtpd = cdatas[list(gdatas.keys())[0]]
+        else:
+            tpd = gdatas[list(gdatas.keys())[0]]
+            showjson = show_confids(tpd, colname="colname", expect=None, prob=0.5, type=0, alpha=0.1)
+            cdatas[list(gdatas.keys())[0]] = pd.DataFrame(showjson)
+            ttnewtpd = fdatas[list(gdatas.keys())[0]]
+        qd = btUrldecode(request.GET, ttnewtpd.columns)
+        totals = ttnewtpd.shape[0]
+        # 排序分页
+        if qd['orderName'] != "pk":
+            if qd['orderName'].startswith("-"):
+                qd['orderName'] = qd['orderName'].lstrip("-")
+                newtpd = ttnewtpd.sort_values(by=[qd['orderName']], ascending=[False])
+            else:
+                newtpd = ttnewtpd.sort_values(by=[qd['orderName']])
+        else:
+            newtpd = copy.deepcopy(ttnewtpd)
+        newtpd = newtpd.iloc[qd['start']:qd['offset'], :]
+
     if len(cdatas.keys()) > 0:
         tpd = cdatas[list(cdatas.keys())[0]]
         return JsonResponse({
@@ -160,7 +182,8 @@ def fitfunc_v(request):
     context = {}
     context["collist"] = []
     if len(gdatas.keys()) > 0:
-        context["collist"] = ["namepair", "best_degree_score", "max_combnum_vali_num", "all_degree_score", "best_coff"]
+        context["collist"] = ["namepair", "best_degree_score", "max_combnum_vali_num", "best_degree_coff",
+                              "all_degree_score"]
     return render(request, 'data_analy/fit_index.html', context)
 
 
@@ -195,19 +218,6 @@ def data_fit(request):
         return JsonResponse({})
 
 
-def data_fit_bak(request):
-    "拟合 汇总输出 内容"
-    if len(fdatas.keys()) > 0:
-        tpd = fdatas[list(fdatas.keys())[0]]
-        return JsonResponse({
-            'total': tpd.shape[0],
-            'data': query2dict(tpd),
-            '_': request.GET.get('_', 0)
-        })
-    else:
-        return JsonResponse({})
-
-
 def data_clean(request):
     # 文件名：pandas
     global gdatas
@@ -228,15 +238,6 @@ def query2dict(t_pandas):
     lists = []
     for id1, values in t_pandas.iterrows():
         lists.append({"pk": id1, **values})
-    return lists
-
-
-def queryjson2dict(t_json):
-    lists = []
-    keylist = list(t_json.keys())
-    for values in zip(*t_json.values()):
-        lists.append({key: val for key, val in zip(keylist, values)})
-    # print(lists)
     return lists
 
 

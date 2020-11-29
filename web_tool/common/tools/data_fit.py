@@ -15,6 +15,7 @@ import time
 import json
 import datetime
 import itertools
+import re
 
 debugsig = 0
 
@@ -55,33 +56,33 @@ def regression_check(x, y, test_size=0.2):
     model_n = PolyLin(degree=best_item[0])
     model_n.fit(x, y)
     best_score = best_item[1][0]
-    best_coff = best_item[1][1:]
-    return model_n, best_score, best_coff, scorejson
+    best_degree_coff = [best_item[0],best_item[1][1:]]
+    return model_n, best_score, best_degree_coff, scorejson
 
 
 def iter_regression4allxy(t_pandas, max_combnum=2, test_size=0.2):
     " 遍历 pandas 中的x y"
     tcol = t_pandas.columns
-    xcol = [col for col in tcol if col.startswith("x_")]
-    ycol = [col for col in tcol if col.startswith("y_")]
+    xcol = [col for col in tcol if re.search("^x_", col, re.M)]
+    ycol = [col for col in tcol if re.search("^y_", col, re.M)]
     fit_json = {}
     fit_json["namepair"] = []
     fit_json["best_degree_score"] = []
     fit_json["max_combnum_vali_num"] = []
+    fit_json["best_degree_coff"] = []
     fit_json["all_degree_score"] = []
-    fit_json["best_coff"] = []
     for i1x in range(1, max_combnum + 1):
         for i2x in itertools.combinations(xcol, i1x):
             tname = ",".join(i2x)
             for i3y in ycol:
                 tx = t_pandas[list(i2x)].values
                 ty = t_pandas[[i3y]].values
-                model, best_score, best_coff, allscore = regression_check(tx, ty, test_size=test_size)
+                model, best_score, best_degree_coff, allscore = regression_check(tx, ty, test_size=test_size)
                 fit_json["namepair"].append(tname + ",_," + i3y)
                 fit_json["best_degree_score"].append(best_score)
                 fit_json["max_combnum_vali_num"].append([max_combnum, test_size])
+                fit_json["best_degree_coff"].append(json.dumps(best_degree_coff, ensure_ascii=False))
                 fit_json["all_degree_score"].append(json.dumps(allscore, ensure_ascii=False))
-                fit_json["best_coff"].append(best_coff)
                 # y_predict_n = model.predict(X)
                 if debugsig == 1:
                     print(datetime.datetime.today())

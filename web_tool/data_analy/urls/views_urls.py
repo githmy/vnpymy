@@ -5,7 +5,7 @@ urlpatterns = [
     # 数据分析管理
     url(r'^$', views.index, name='data_analy-index'),
     url(r'^show/$', views.data_index, name='data_show'),
-    url(r'^nindex/$', views.nindex_v, name='nindex_views'),
+    url(r'^prob_check/$', views.prob_check_v, name='prob_check_views'),
     url(r'^relation/$', views.relation_v, name='relation_views'),
     url(r'^confidence/$', views.confidence_v, name='confidence_views'),
     url(r'^fitfunc/$', views.fitfunc_v, name='fitfunc_views'),
