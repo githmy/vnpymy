@@ -13,51 +13,48 @@
 
 {% block body_content %}
     <div class="row">
-        <div class="col-xs-12">
-            <div class="box">
-                <p></p>
-                {#                <div id="table-bar">#}
-                <div class="row">
-                    <div class="col-sm-1"></div>
+        <br class="col-xs-12">
+        <div class="box">
+            <div class="row">
+                {% for row in collist %}
                     <div class="col-sm-1">
-                        <button onclick="doQuery()" class="btn btn-default"><i class="fa fa-refresh">&nbsp;&nbsp;刷新</i>
-                        </button>
+                        <label class="col-sm-6">{{ row }}:</label>
+                        <input id="search_{{ row }}" type="text" name="search_{{ row }}" value="">
                     </div>
-                    <div class="col-sm-1">
-                        <button class="btn btn-default" data-toggle="modal" data-target="#data_import_modal"
-                                tabindex="0"><i class="fa fa-reply-all">&nbsp;&nbsp;导入</i>
-                        </button>
-                    </div>
-                    {#                    <div class="col-sm-1">#}
-                    {#                        <button onclick="doExport()" class="btn btn-default"><i class="fa fa-external-link">&nbsp;&nbsp;导出</i>#}
-                    {#                        </button>#}
-                    {#                    </div>#}
-                    {#                    <div class="col-sm-1">#}
-                    {#                        <button class="btn btn-default" data-toggle="modal" data-target="#data_add_modal"#}
-                    {#                                tabindex="0"><i class="fa fa-plus">&nbsp;&nbsp;添加</i></button>#}
-                    {#                    </div>#}
-                    <div class="col-sm-1">
-                        <button onclick="doQuery()" class="btn btn-primary btn-flat"
-                                style="display:block;margin-top: 2px"><i
-                                class="fa fa-search">&nbsp;&nbsp;查询</i></button>
-                    </div>
-                    <div class="col-sm-1">
-                        <button onclick="doClean()" class="btn btn-primary btn-flat"
-                                style="display:block;margin-top: 2px"><i
-                                class="fa fa-search">&nbsp;&nbsp;清空</i></button>
-                    </div>
-                </div>
-
-                <div class="box-body">
-                    <table id="data-table">
-
-                    </table>
-                </div>
-
-                {% include "data_analy/_data_export_model.html" %}
+                {% endfor %}
+            </div>
+            </br>
+            <div class="col-sm-1">
+                <button onclick="doQuery()" class="btn btn-default"><i class="fa fa-refresh">&nbsp;&nbsp;刷新</i>
+                </button>
+            </div>
+            <div class="col-sm-1">
+                <button class="btn btn-default" data-toggle="modal" data-target="#data_import_modal"
+                        tabindex="0"><i class="fa fa-reply-all">&nbsp;&nbsp;导入</i>
+                </button>
+            </div>
+            <div class="col-sm-1">
+                <button onclick="doQuery()" class="btn btn-primary btn-flat"
+                        style="display:block;margin-top: 2px"><i
+                        class="fa fa-search">&nbsp;&nbsp;查询</i></button>
+            </div>
+            <div class="col-sm-1">
+                <button onclick="doClean()" class="btn btn-primary btn-flat"
+                        style="display:block;margin-top: 2px"><i
+                        class="fa fa-search">&nbsp;&nbsp;清空</i></button>
             </div>
         </div>
+
+        <div class="box-body">
+            <table id="data-table">
+
+            </table>
+        </div>
+
+        {% include "data_analy/_data_export_model.html" %}
     </div>
+    {#    </div>#}
+    {#    </div>#}
 {% endblock %}
 
 {% block ex_head %}
@@ -169,15 +166,9 @@
 
         function queryParams(params) {
             var param = {
-                expired: $("#search_expired").val(),
-                model: $("#search_model").val(),
-                status: $("#search_status").val(),
-                supplier: $("#search_supplier").val(),
-                serial: $("#search_serial").val(),
-                brand: $("#search_brand").val(),
-                type: $("#search_type").val(),
-                num: $("#search_num").val(),
-                purchase: $("#search_purchase").val(),
+                {% for row in collist %}
+                    search_{{ row }}: $("#search_{{ row }}").val(),
+                {% endfor %}
                 limit: params.limit,  // 页码大小
                 offset: params.offset, // 页码偏移
                 orderName: params.sort,  //排序列名

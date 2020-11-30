@@ -13,7 +13,7 @@
             <li><a href="{% url 'data_analy:data_show' %}"><i class="fa fa-circle-o"></i>数据列表</a></li>
             <li><a href="{% url 'data_analy:confidence_views' %}"><i class="fa fa-circle-o"></i>置信区间</a></li>
             <li><a href="{% url 'data_analy:prob_check_views' %}"><i class="fa fa-circle-o"></i>检验概率</a></li>
-            <li><a href="{% url 'data_analy:fitfunc_views' %}"><i class="fa fa-circle-o"></i>拟合函数</a></li>
+            <li><a href="{% url 'data_analy:fit_views' %}"><i class="fa fa-circle-o"></i>拟合函数</a></li>
             <li><a href="{% url 'data_analy:relation_views' %}"><i class="fa fa-circle-o"></i>相关性</a></li>
         </ul>
     </li>
@@ -75,11 +75,13 @@
         <p>
         <h3>数据分析</h3>
         <h5>拟合：x_开头的栏作为自变量，排列组合；y_开头的栏作为因变量，遍历。f_开头的作为置信数列。
+            reference_col0 confidence_col0
         </h5>
         <h4>1. 数据列表</h4>
         <h4>2. 置信区间</h4>
         <h5>选某列，置信度，置信模式</h5>
         <h5>针对某列：统计函数名(均值，正态，卡方等), 均值, 方差, ...置信度..., ...置信区间...</h5>
+        <h5>给出mean, 和概率类型，输出概率值和置信区间。为null，</h5>
         <h4>3. 概率检验</h4>
         <h5>选某列，位置，检验模式</h5>
         <h5>针对某列：统计函数名(均值，正态，卡方等), 均值, 方差, 概率值</h5>
@@ -89,7 +91,6 @@
         <h5>给定</h5>
         <h4>6. 统计函数</h4>
         <h5>6.1 均匀分布</h5>
-        <img src="/static/img/0.png" class="user-image" alt="User Image">
         </br>
         <h5>6.2 正态分布：</h5>
         <img src="/static/img/normal.png" class="user-image" alt="User Image">
@@ -97,35 +98,48 @@
         <h5>6.3 指数分布：</h5>两次事件发生的时间间隔
         <img src="/static/img/exponent.png" class="user-image" alt="User Image">
         </br>
-        <h5>6.4 泊松分布：</h5>λ 为一个常数，代表单位时间内事件发生的次数。
-        <img src="/static/img/possion.png" class="user-image" alt="User Image">
-        </br>
-        <h5>6.5 gamma分布：</h5>
+        <h5>6.4 gamma分布：</h5>
         Gamma分布是n倍的指数分布
         </br>即，Gamma分布表示发生n次（α 次）事件的时间间隔的概率分布。
         </br>其实 Gamma分布 就是Possion分布在正实数集上的连续化版本
         </br><img src="/static/img/gamma0.png" class="user-image" alt="User Image">
         </br><img src="/static/img/gamma.png" class="user-image" alt="User Image">
         </br>
-        <h5>6.6 卡方分布：</h5>ν 是非负整数, 均值是ν，方差是2ν
+        <h5>6.5 卡方分布：</h5>ν 是非负整数, 均值是ν，方差是2ν
+        自由度 n 越大, \chi _{n}^{2} 的密度曲线越趋于对称, n 越小, 曲线越不对称. 当 n = 1, 2 时曲线是单调下降趋于 0. 当 n ≥ 3时曲线有单峰, 从 0 开始先单调上升, 在一定位置达到峰值, 然后单下降趋向于 0。
+        </br>概念
+        <img src="/static/img/chi2_def.png" class="user-image" alt="User Image">
+        </br>密度图
+        <img src="/static/img/chi2_graph.png" class="user-image" alt="User Image">
         </br>密度分布
         <img src="/static/img/chi2_dens.png" class="user-image" alt="User Image">累计分布
         <img src="/static/img/chi2_cum.png" class="user-image" alt="User Image">
+        </br>性质
+        <img src="/static/img/chi2_property.png" class="user-image" alt="User Image">
         </br>
-        <h5>6.7 students分布：</h5>ν变为无穷大，t分布接近标准正态分布。
-        </br>
-        自由度ν大于1. 如果ν等于1，则均值未定义。
-        自由度ν大于2. 如果ν小于或等于2，则方差未定义。
+        <h5>6.6 students分布：</h5>定义
+        <img src="/static/img/student_def.png" class="user-image" alt="User Image">
+        <img src="/static/img/student_graph.png" class="user-image" alt="User Image">
         </br>密度分布
         <img src="/static/img/students_dens.png" class="user-image" alt="User Image">累计分布
         <img src="/static/img/students_cum.png" class="user-image" alt="User Image">
+        </br>ν变为无穷大，t分布接近标准正态分布。
+        <img src="/static/img/student_property.png" class="user-image" alt="User Image">
         </br>
-        <h5>6.8 F分布：</h5>ν1和ν2是分子和分母的自由度。 即，ν1和ν2分别是用于计算χ1和χ2的独立信息的数量。
+        自由度ν大于1. 如果ν等于1，则均值未定义。
+        自由度ν大于2. 如果ν小于或等于2，则方差未定义。
+        </br>
+        <h5>6.7 F分布：</h5>
+        <img src="/static/img/f_def.png" class="user-image" alt="User Image">
         </br>密度分布
         <img src="/static/img/F_dens.png" class="user-image" alt="User Image">累计分布
         <img src="/static/img/F_cum.png" class="user-image" alt="User Image">
         <br>
-        <h5>6.9 beta分布：</h5> 伯努利分布和二项式分布的共轭先验分布的密度函数. 定义域(0,1)
+        <img src="/static/img/f_graph.png" class="user-image" alt="User Image">
+        <br>ν1和ν2是分子和分母的自由度。 即，ν1和ν2分别是用于计算χ1和χ2的独立信息的数量。
+        <img src="/static/img/f_property.png" class="user-image" alt="User Image">
+        <br>
+        <h5>6.8 beta分布：</h5> 伯努利分布和二项式分布的共轭先验分布的密度函数. 定义域(0,1)
         </br>是不完全Β函数， 是正则不完全贝塔函数。
         </br>密度分布
         <img src="/static/img/beta_dens.png" class="user-image" alt="User Image">累计分布
@@ -133,7 +147,7 @@
         <br>
         <img src="/static/img/beta_1.png" class="user-image" alt="User Image">
         <br>
-        <h5>6.10 laplace分布：</h5> 偏差平方和的大小作标准，来选择回归系数使它达到极小，这种回归不具有稳健性，
+        <h5>6.9 laplace分布：</h5> 偏差平方和的大小作标准，来选择回归系数使它达到极小，这种回归不具有稳健性，
         <br>
         然而，如改为用偏差的绝对值和作为标准，却具有稳健性。
         <br>
@@ -141,7 +155,7 @@
         </br>密度分布
         <img src="/static/img/laplace_dens.png" class="user-image" alt="User Image">
         <br>
-        <h5>6.11 瑞利分布：</h5>当一个随机二维向量的两个分量呈独立的、均值为0，有着相同的方差的正态分布时，这个向量的模呈瑞利分布。
+        <h5>6.10 瑞利分布：</h5>当一个随机二维向量的两个分量呈独立的、均值为0，有着相同的方差的正态分布时，这个向量的模呈瑞利分布。
         <br>
         </br>密度分布
         <img src="/static/img/ruili_dens.png" class="user-image" alt="User Image">
@@ -149,6 +163,32 @@
         <img src="/static/img/ruili_mean.png" class="user-image" alt="User Image">方差
         <img src="/static/img/ruili_var.png" class="user-image" alt="User Image">
         <br>
+        <h5>6.11 伯努利分布：</h5>零一分布或者两点分布。bernoulli
+{#        <img src="/static/img/possion.png" class="user-image" alt="User Image">#}
+        </br>
+        <h5>6.12 二项分布：</h5>n次独立的伯努利分布。如抛掷n次硬币，n-1次朝上的概率。binom
+{#        <img src="/static/img/possion.png" class="user-image" alt="User Image">#}
+        </br>
+        <h5>6.13 几何分布：</h5>与二项分布类似，不同的是几何分布存在顺序。
+        <br>在n次独立的伯努利试验中，试验k次才得到第一次成功的机率。
+        <br>
+        <h5>6.14 泊松分布：</h5>λ 为一个常数，代表单位时间内事件发生的次数。
+        <img src="/static/img/possion.png" class="user-image" alt="User Image">
+        </br>
+        <h5>6.15 定理推论：</h5>
+        <img src="/static/img/norm_sum.png" class="user-image" alt="User Image">
+        <img src="/static/img/infere_1.png" class="user-image" alt="User Image">
+        <img src="/static/img/infere_2.png" class="user-image" alt="User Image">
+        <img src="/static/img/infere_3.png" class="user-image" alt="User Image">
+        <img src="/static/img/infere_4.png" class="user-image" alt="User Image">
+        <img src="/static/img/infere_last.png" class="user-image" alt="User Image">
+        <p>数据在使用前要注意采用有效的方法收集数据, 如设计好抽样方案, 安排好试验等等. 只有有效的收集了数据, 才能有效地使用数据,开展统计推断工作.获得数据后, 根据问题的特点和抽样方式确定抽样分布, 即统计模型. 基于统计模型, 统计推断问题可以按照如下的步骤进行:
+        确定用于统计推断的合适统计量;
+        寻求统计量的精确分布; 在统计量的精确分布难以求出的情形,可考虑利用中心极限定理或其它极限定理找出统计量的极限分布.
+        基于该统计量的精确分布或极限分布, 求出统计推断问题的精确解或近似解.
+        根据统计推断结果对问题作出解释
+        </p>
+        </br>
         </p>
         <br>
         <p>--------------</p>

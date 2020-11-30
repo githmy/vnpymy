@@ -15,6 +15,22 @@
     <div class="row">
         <div class="col-xs-12">
             <div class="box">
+                <div class="row">
+                    {% for row in collist %}
+                        <div class="col-sm-1">
+                            <label class="col-sm-6">{{ row }}:</label>
+                            <input id="search_{{ row }}" type="text" name="search_{{ row }}" value="">
+                        </div>
+                    {% endfor %}
+                </div>
+                </br>
+                <div class="col-sm-1">
+                    <button onclick="doQuery()" class="btn btn-primary btn-flat"
+                            style="display:block;margin-top: 2px"><i
+                            class="fa fa-search">&nbsp;&nbsp;查询</i></button>
+                </div>
+            </div>
+            <div>
                 <div class="box-body">
                     <table id="data-table">
 
@@ -37,6 +53,11 @@
 {% block ex_script %}
     <script src="/static/ALTE/plugins/datepicker/bootstrap-datetimepicker.js"></script>
     <script>
+        function doQuery() {
+            $('#data-table').bootstrapTable('refresh');    //刷新表格
+            location.replace(location.href);
+        }
+
         $(function () {
             $('#data-table').bootstrapTable(options);
         });
@@ -95,15 +116,9 @@
 
         function queryParams(params) {
             var param = {
-                expired: $("#search_expired").val(),
-                model: $("#search_model").val(),
-                status: $("#search_status").val(),
-                supplier: $("#search_supplier").val(),
-                serial: $("#search_serial").val(),
-                brand: $("#search_brand").val(),
-                type: $("#search_type").val(),
-                num: $("#search_num").val(),
-                purchase: $("#search_purchase").val(),
+                {% for row in collist %}
+                    search_{{ row }}: $("#search_{{ row }}").val(),
+                {% endfor %}
                 limit: params.limit,  // 页码大小
                 offset: params.offset, // 页码偏移
                 orderName: params.sort,  //排序列名
@@ -139,7 +154,6 @@
                 return;
             }
         }
-        var currentId = null;
 
     </script>
 

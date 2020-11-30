@@ -5,8 +5,8 @@ from common.mixins import JSONResponseMixin, AdminUserRequiredMixin
 from common.utils import get_object_or_none
 from common.tools.data_fit import iter_regression4allxy
 from common.tools.data_confidenc import show_confids
-from .. import forms
 from django import forms as oforms
+from .. import forms
 from django.views import View
 import codecs
 import xlrd
@@ -16,6 +16,7 @@ import datetime
 import pandas as pd
 import os
 from io import StringIO, BytesIO
+import re
 import copy
 
 # Create your views here.
@@ -45,11 +46,11 @@ def btUrldecode(urldata, colnames):
     order_type = urldata.get('orderType', 'asc')
     order_col = urldata.get('orderName', 'pk')
     trim['orderName'] = order_col if order_type == u'asc' else u'-' + order_col
-
     # 查找表 每列
     for colname in colnames:
-        if urldata.get(colname):
-            trim['query'][colname] = urldata.get(colname)
+        tqur = urldata.get("search_{}".format(colname))
+        if tqur:
+            trim['query'][colname] = tqur
     return trim
 
 
@@ -63,7 +64,8 @@ def data_index(request):
     context = {}
     context["collist"] = []
     if len(gdatas.keys()) > 0:
-        context["collist"] = gdatas[list(gdatas.keys())[0]].columns
+        tclist = gdatas[list(gdatas.keys())[0]].columns
+        context["collist"] = tclist
     return render(request, 'data_analy/data_index.html', context)
 
 
@@ -72,24 +74,41 @@ def data_list(request):
     if len(gdatas.keys()) > 0:
         tpd = gdatas[list(gdatas.keys())[0]]
         qd = btUrldecode(request.GET, tpd.columns)
-        totals = tpd.shape[0]
-        # 排序分页
-        if qd['orderName'] != "pk":
-            if qd['orderName'].startswith("-"):
-                qd['orderName'] = qd['orderName'].lstrip("-")
-                newtpd = tpd.sort_values(by=[qd['orderName']], ascending=[False])
-            else:
-                newtpd = tpd.sort_values(by=[qd['orderName']])
-        else:
-            newtpd = copy.deepcopy(tpd)
-        newtpd = newtpd.iloc[qd['start']:qd['offset'], :]
-        return JsonResponse({
-            'total': totals,
-            'data': query2dict(newtpd),
-            '_': request.GET.get('_', 0)
-        })
+        # 筛选+排序
+        outjson = data_list_core(tpd, qd)
+        outjson['_'] = request.GET.get('_', 0)
+        return JsonResponse(outjson)
     else:
         return JsonResponse({})
+
+
+def data_list_core(inpandas, qd):
+    "数据筛选排序通用核心: 数据frame, 请求json"
+    # 筛选
+    newtpd = copy.deepcopy(inpandas)
+    newtpd = newtpd.applymap(str)
+    indlist = set(newtpd.index)
+    for coln in inpandas.columns:
+        if coln in qd['query']:
+            tind = newtpd[coln].str.find(qd['query'][coln])
+            tind = tind[tind > -1].index
+            indlist = indlist & set(tind)
+    indlist = sorted(indlist)
+    totals = len(indlist)
+    # 取转为str前的 pandas
+    newtpd = inpandas.iloc[indlist, :]
+    # 排序分页
+    if qd['orderName'] != "pk":
+        if qd['orderName'].startswith("-"):
+            qd['orderName'] = qd['orderName'].lstrip("-")
+            newtpd = newtpd.sort_values(by=[qd['orderName']], ascending=[False])
+        else:
+            newtpd = newtpd.sort_values(by=[qd['orderName']])
+    newtpd = newtpd.iloc[qd['start']:qd['offset'], :]
+    return {
+        'total': totals,
+        'data': query2dict(newtpd),
+    }
 
 
 def prob_check_v(request):
@@ -139,7 +158,8 @@ def confidence_v(request):
     context = {}
     context["collist"] = []
     if len(cdatas.keys()) > 0:
-        context["collist"] = ["a b", "a c", "b c"]
+        tclist = cdatas[list(gdatas.keys())[0]].columns
+        context["collist"] = tclist
     return render(request, 'data_analy/confidence_index.html', context)
 
 
@@ -154,36 +174,20 @@ def data_confidence(request):
             cdatas[list(gdatas.keys())[0]] = pd.DataFrame(showjson)
             ttnewtpd = fdatas[list(gdatas.keys())[0]]
         qd = btUrldecode(request.GET, ttnewtpd.columns)
-        totals = ttnewtpd.shape[0]
-        # 排序分页
-        if qd['orderName'] != "pk":
-            if qd['orderName'].startswith("-"):
-                qd['orderName'] = qd['orderName'].lstrip("-")
-                newtpd = ttnewtpd.sort_values(by=[qd['orderName']], ascending=[False])
-            else:
-                newtpd = ttnewtpd.sort_values(by=[qd['orderName']])
-        else:
-            newtpd = copy.deepcopy(ttnewtpd)
-        newtpd = newtpd.iloc[qd['start']:qd['offset'], :]
-
-    if len(cdatas.keys()) > 0:
-        tpd = cdatas[list(cdatas.keys())[0]]
-        return JsonResponse({
-            'total': tpd.shape[0],
-            'data': query2dict(tpd),
-            '_': request.GET.get('_', 0)
-        })
+        outjson = data_list_core(ttnewtpd, qd)
+        outjson['_'] = request.GET.get('_', 0)
+        return JsonResponse(outjson)
     else:
         return JsonResponse({})
 
 
-def fitfunc_v(request):
+def fit_v(request):
     "拟合 汇总输出 表头"
     context = {}
     context["collist"] = []
-    if len(gdatas.keys()) > 0:
-        context["collist"] = ["namepair", "best_degree_score", "max_combnum_vali_num", "best_degree_coff",
-                              "all_degree_score"]
+    if len(fdatas.keys()) > 0:
+        tclist = fdatas[list(gdatas.keys())[0]].columns
+        context["collist"] = tclist
     return render(request, 'data_analy/fit_index.html', context)
 
 
@@ -193,27 +197,15 @@ def data_fit(request):
         if len(fdatas) > 0:
             ttnewtpd = fdatas[list(gdatas.keys())[0]]
         else:
+            # 判断生成拟合信息
             tpd = gdatas[list(gdatas.keys())[0]]
             showjson = iter_regression4allxy(tpd, max_combnum=2, test_size=0.2)
             fdatas[list(gdatas.keys())[0]] = pd.DataFrame(showjson)
             ttnewtpd = fdatas[list(gdatas.keys())[0]]
         qd = btUrldecode(request.GET, ttnewtpd.columns)
-        totals = ttnewtpd.shape[0]
-        # 排序分页
-        if qd['orderName'] != "pk":
-            if qd['orderName'].startswith("-"):
-                qd['orderName'] = qd['orderName'].lstrip("-")
-                newtpd = ttnewtpd.sort_values(by=[qd['orderName']], ascending=[False])
-            else:
-                newtpd = ttnewtpd.sort_values(by=[qd['orderName']])
-        else:
-            newtpd = copy.deepcopy(ttnewtpd)
-        newtpd = newtpd.iloc[qd['start']:qd['offset'], :]
-        return JsonResponse({
-            'total': totals,
-            'data': query2dict(newtpd),
-            '_': request.GET.get('_', 0)
-        })
+        outjson = data_list_core(ttnewtpd, qd)
+        outjson['_'] = request.GET.get('_', 0)
+        return JsonResponse(outjson)
     else:
         return JsonResponse({})
 
