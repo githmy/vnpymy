@@ -96,6 +96,16 @@
             exportDataType: 'all',          // 导出all
             responseHandler: responseHandler,
             columns: [
+                {
+                    checkbox: true
+                },
+                {
+                    field: 'pk',
+                    title: 'ID',
+                    align: 'center',
+                    valign: 'middle',
+                    sortable: true
+                },
                 {% for row in collist %}
                     {
                         field: '{{ row }}',

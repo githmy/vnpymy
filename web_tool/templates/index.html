@@ -141,15 +141,7 @@
         <br>ν1和ν2是分子和分母的自由度。 即，ν1和ν2分别是用于计算χ1和χ2的独立信息的数量。
         <img src="/static/img/f_property.png" class="user-image" alt="User Image">
         <br>
-        <h5>6.8 beta分布：</h5> 伯努利分布和二项式分布的共轭先验分布的密度函数. 定义域(0,1)
-        </br>是不完全Β函数， 是正则不完全贝塔函数。
-        </br>密度分布
-        <img src="/static/img/beta_dens.png" class="user-image" alt="User Image">累计分布
-        <img src="/static/img/beta_cum.png" class="user-image" alt="User Image">
-        <br>
-        <img src="/static/img/beta_1.png" class="user-image" alt="User Image">
-        <br>
-        <h5>6.9 laplace分布：</h5> 偏差平方和的大小作标准，来选择回归系数使它达到极小，这种回归不具有稳健性，
+        <h5>6.8 laplace分布：</h5> 偏差平方和的大小作标准，来选择回归系数使它达到极小，这种回归不具有稳健性，
         <br>
         然而，如改为用偏差的绝对值和作为标准，却具有稳健性。
         <br>
@@ -157,7 +149,7 @@
         </br>密度分布
         <img src="/static/img/laplace_dens.png" class="user-image" alt="User Image">
         <br>
-        <h5>6.10 瑞利分布：</h5>当一个随机二维向量的两个分量呈独立的、均值为0，有着相同的方差的正态分布时，这个向量的模呈瑞利分布。
+        <h5>6.9 瑞利分布：</h5>当一个随机二维向量的两个分量呈独立的、均值为0，有着相同的方差的正态分布时，这个向量的模呈瑞利分布。
         <br>
         </br>密度分布
         <img src="/static/img/ruili_dens.png" class="user-image" alt="User Image">
@@ -165,19 +157,43 @@
         <img src="/static/img/ruili_mean.png" class="user-image" alt="User Image">方差
         <img src="/static/img/ruili_var.png" class="user-image" alt="User Image">
         <br>
-        <h5>6.11 伯努利分布：</h5>零一分布或者两点分布。bernoulli
-{#        <img src="/static/img/possion.png" class="user-image" alt="User Image">#}
+        <h5>6.10 伯努利分布：</h5>零一分布或者两点分布。bernoulli
+        <img src="/static/img/bernoulli_def.png" class="user-image" alt="User Image">
         </br>
-        <h5>6.12 二项分布：</h5>n次独立的伯努利分布。如抛掷n次硬币，n-1次朝上的概率。binom
-{#        <img src="/static/img/possion.png" class="user-image" alt="User Image">#}
+        <img src="/static/img/bernoulli_graph.png" class="user-image" alt="User Image">
         </br>
-        <h5>6.13 几何分布：</h5>与二项分布类似，不同的是几何分布存在顺序。
+        <h5>6.11 二项分布：</h5>n次独立的伯努利分布。如抛掷n次硬币，n-1次朝上的概率。binom
+        </br>
+        P(X=k) = C(n,k) * pk*(1-p)n-k
+        <img src="/static/img/binom_graph.png" class="user-image" alt="User Image">
+        </br>
+        <h5>6.12 beta分布：</h5> 伯努利分布和二项式分布的共轭先验分布的密度函数. 定义域(0,1)
+        </br>是不完全Β函数， 是正则不完全贝塔函数。
+        <img src="/static/img/beta_def.png" class="user-image" alt="User Image">
+        </br>密度分布
+        <img src="/static/img/beta_dens.png" class="user-image" alt="User Image">累计分布
+        <img src="/static/img/beta_cum.png" class="user-image" alt="User Image">
+        <br>
+        <img src="/static/img/beta_1.png" class="user-image" alt="User Image">
+        <br>
+        <img src="/static/img/beta_graph.png" class="user-image" alt="User Image">
+        <br>
+        <h5>6.13 多项分布：</h5>不是硬币，是骰子。
+        </br>
+        P(X=k) = C(n,k) * pk*(1-p)n-k
+        <img src="/static/img/multinomial_def.png" class="user-image" alt="User Image">
+        </br>
+        <h5>6.14 狄利克雷分布：</h5>是多项分布的共轭分布，也就是它与多项分布具有相同形式的分布函数。
+        </br>
+        <img src="/static/img/dirichlet_def.png" class="user-image" alt="User Image">
+        </br>
+        <h5>6.15 几何分布：</h5>与二项分布类似，不同的是几何分布存在顺序。
         <br>在n次独立的伯努利试验中，试验k次才得到第一次成功的机率。
         <br>
-        <h5>6.14 泊松分布：</h5>λ 为一个常数，代表单位时间内事件发生的次数。
+        <h5>6.16 泊松分布：</h5>λ 为一个常数，代表单位时间内事件发生的次数。
         <img src="/static/img/possion.png" class="user-image" alt="User Image">
         </br>
-        <h5>6.15 定理推论：</h5>
+        <h5>6.17 定理推论：</h5>
         <img src="/static/img/norm_sum.png" class="user-image" alt="User Image">
         <img src="/static/img/infere_1.png" class="user-image" alt="User Image">
         <img src="/static/img/infere_2.png" class="user-image" alt="User Image">

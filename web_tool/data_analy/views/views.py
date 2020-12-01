@@ -4,7 +4,7 @@ from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
 from common.mixins import JSONResponseMixin, AdminUserRequiredMixin
 from common.utils import get_object_or_none
 from common.tools.data_fit import iter_regression4allxy
-from common.tools.data_confidenc import show_confids
+from common.tools.data_confidenc import show_all_confids
 from django import forms as oforms
 from .. import forms
 from django.views import View
@@ -170,9 +170,9 @@ def data_confidence(request):
             ttnewtpd = cdatas[list(gdatas.keys())[0]]
         else:
             tpd = gdatas[list(gdatas.keys())[0]]
-            showjson = show_confids(tpd, colname="colname", expect=None, prob=0.5, type=0, alpha=0.1)
+            showjson = show_all_confids(tpd, alpha=0.05)
             cdatas[list(gdatas.keys())[0]] = pd.DataFrame(showjson)
-            ttnewtpd = fdatas[list(gdatas.keys())[0]]
+            ttnewtpd = cdatas[list(gdatas.keys())[0]]
         qd = btUrldecode(request.GET, ttnewtpd.columns)
         outjson = data_list_core(ttnewtpd, qd)
         outjson['_'] = request.GET.get('_', 0)
