@@ -120,95 +120,98 @@ def show_confids(xdata, colname="colname", expect=None, prob=0.5, type=0, alpha=
     """
     if expect is None:
         pass
+    funcnames = ["uniform", "norm", "students", "laplace", "rayleigh", "F", "beta", "chi2", "expon"]
+    funceven = ["bernoulli", "binom", "poisson", "geom"]
+    allfuncs = funcnames + funceven
+    funcname = None
+    for ifuncname in allfuncs:
+        if re.match(r'^{}'.format(ifuncname), colname):
+            matchsig = 1
+            funcname = ifuncname
+            break
+    if funcname is None:
+        raise Exception("输入名不合法{}".format(colname))
     confid = 1 - alpha
     xdata = np.array(xdata)
     mean = xdata.mean()
     sstd = xdata.std()
     v = xdata.size
     print(v)
-    funcnames = ["uniform", "norm", "laplace", "students", "F", "beta", "chi2", "expon", "rayleigh"]
-    funceven = ["bernoulli", "binom", "poisson", "geom"]
     confidlist = [0.5, 0.9, 0.99, 0.999]
-    statis_json = []
-    for funcname in funcnames:
-        if funcname in funceven:
-            continue
-        print(funcname)
-        tmp_json = {}
-        tmp_json["colname"] = colname
-        tmp_json["funcname"] = funcname
-        tmp_json["mean"] = mean
-        tmp_json["sstd"] = sstd
-        interval = stats.norm.interval(confid, mean, sstd)  # 样本统计结果，96%置信水平的区间
-        tmp_json["prob_interval_{}".format(confid)] = str(interval)
-        # https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.chi2.html
+    if confid not in confidlist:
+        confidlist = [confid] + confidlist
+    statis_json = {}
+    statis_json["colname"] = colname
+    # tmp_json["funcname"] = funcname
+    statis_json["mean"] = mean
+    statis_json["sstd"] = sstd
+    # https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.chi2.html
+    if funcname == "uniform":
+        # [loc, loc + scale]
+        prob = stats.uniform.pdf(mean, mean - sstd * 1.733, mean + sstd * 1.733)  # 概率密度: 在0处概率密度值
+    elif funcname == "norm":
+        prob = stats.norm.pdf(mean, mean, sstd)  # 概率密度: 在0处概率密度值
+    elif funcname == "laplace":
+        prob = stats.laplace.pdf(mean, mean, sstd)  # 概率密度: 在0处概率密度值
+    elif funcname == "students":
+        prob = stats.t.pdf(mean, v, mean, sstd)  # 概率密度: 在0处概率密度值
+    elif funcname == "chi2":
+        # 2*mean == sstd
+        prob = stats.chi2.pdf(mean, v, mean, sstd)  # 概率密度: 在0处概率密度值
+    elif funcname == "expon":
+        prob = stats.expon.pdf(mean, mean, sstd)  # 概率密度: 在0处概率密度值
+    elif funcname == "rayleigh":
+        prob = stats.rayleigh.pdf(mean, mean, sstd)  # 概率密度: 在0处概率密度值
+    elif funcname == "F":
+        df1 = 3
+        df2 = 5
+        prob = stats.f.pdf(mean, df1, df2, mean, sstd)  # 概率密度: 在0处概率密度值
+    elif funcname == "beta":
+        a, b = 2.31, 0.627
+        prob = stats.beta.pdf(mean, a, b, mean, sstd)  # 概率密度: 在0处概率密度值
+    elif funcname == "bernoulli":
+        p = 0.3
+        prob = stats.bernoulli.pmf(mean, p, mean)  # 概率密度: 在0处概率密度值
+    elif funcname == "binom":
+        n = 5
+        p = 0.3
+        prob = stats.binom.pmf(mean, n, p, mean)  # 概率密度: 在0处概率密度值
+    elif funcname == "poisson":
+        # mean == sstd
+        p = 0.3
+        prob = stats.poisson.pmf(mean, p, mean)  # 概率密度: 在0处概率密度值
+    elif funcname == "geom":
+        p = 0.3
+        prob = stats.geom.pmf(mean, p, mean)  # 概率密度: 在0处概率密度值
+    else:
+        prob = None
+    statis_json["center_prob_density"] = prob
+    print(prob, statis_json)
+    for oneconfi in confidlist:
         if funcname == "uniform":
-            # [loc, loc + scale]
-            prob = stats.uniform.pdf(mean, mean - sstd, mean + sstd)  # 概率密度: 在0处概率密度值
+            interval = stats.uniform.interval(oneconfi, mean - sstd * 1.733, mean + sstd * 1.733)
         elif funcname == "norm":
-            prob = stats.norm.pdf(mean, mean, sstd)  # 概率密度: 在0处概率密度值
+            interval = stats.norm.interval(oneconfi, mean, sstd)  # 样本统计结果，96%置信水平的区间
         elif funcname == "laplace":
-            prob = stats.laplace.pdf(mean, mean, sstd)  # 概率密度: 在0处概率密度值
+            interval = stats.laplace.interval(oneconfi, mean, sstd)
         elif funcname == "students":
-            prob = stats.t.pdf(mean, v, mean, sstd)  # 概率密度: 在0处概率密度值
-        elif funcname == "chi2":
-            # 2*mean == sstd
-            prob = stats.chi2.pdf(mean, v, mean, sstd)  # 概率密度: 在0处概率密度值
-        elif funcname == "expon":
-            prob = stats.expon.pdf(mean, mean, sstd)  # 概率密度: 在0处概率密度值
+            interval = stats.t.interval(oneconfi, v, mean, sstd)
         elif funcname == "rayleigh":
-            prob = stats.rayleigh.pdf(mean, mean, sstd)  # 概率密度: 在0处概率密度值
+            interval = stats.rayleigh.interval(oneconfi, mean, sstd)
         elif funcname == "F":
-            df1 = 3
-            df2 = 5
-            prob = stats.f.pdf(mean, df1, df2, mean, sstd)  # 概率密度: 在0处概率密度值
+            interval = stats.f.interval(oneconfi, mean, sstd)
         elif funcname == "beta":
-            a, b = 2.31, 0.627
-            prob = stats.beta.pdf(mean, a, b, mean, sstd)  # 概率密度: 在0处概率密度值
-        elif funcname == "bernoulli":
-            p = 0.3
-            prob = stats.bernoulli.pmf(mean, p, mean)  # 概率密度: 在0处概率密度值
-        elif funcname == "binom":
-            n = 5
-            p = 0.3
-            prob = stats.binom.pmf(mean, n, p, mean)  # 概率密度: 在0处概率密度值
+            interval = stats.beta.interval(oneconfi, mean, sstd)
         elif funcname == "poisson":
-            # mean == sstd
-            p = 0.3
-            prob = stats.poisson.pmf(mean, p, mean)  # 概率密度: 在0处概率密度值
-        elif funcname == "geom":
-            p = 0.3
-            prob = stats.geom.pmf(mean, p, mean)  # 概率密度: 在0处概率密度值
+            interval = stats.poisson.interval(oneconfi, mean, sstd)
+        elif funcname == "chi2":
+            interval = stats.chi2.interval(oneconfi, mean, sstd)
+        elif funcname == "expon":
+            interval = stats.expon.interval(oneconfi, mean, sstd)
         else:
-            prob = None
-        tmp_json["center_prob_density"] = prob
-        print(prob, tmp_json)
-        for oneconfi in confidlist:
-            if funcname == "uniform":
-                interval = stats.uniform.interval(oneconfi, mean, sstd)  # 样本统计结果，96%置信水平的区间
-            elif funcname == "norm":
-                interval = stats.norm.interval(oneconfi, mean, sstd)  # 样本统计结果，96%置信水平的区间
-            elif funcname == "laplace":
-                interval = stats.laplace.interval(oneconfi, mean, sstd)
-            elif funcname == "students":
-                interval = stats.t.interval(oneconfi, mean, sstd)
-            elif funcname == "rayleigh":
-                interval = stats.rayleigh.interval(oneconfi, mean, sstd)
-            elif funcname == "F":
-                interval = stats.f.interval(oneconfi, mean, sstd)
-            elif funcname == "beta":
-                interval = stats.beta.interval(oneconfi, mean, sstd)
-            elif funcname == "poisson":
-                interval = stats.poisson.interval(oneconfi, mean, sstd)
-            elif funcname == "chi2":
-                interval = stats.chi2.interval(oneconfi, mean, sstd)
-            elif funcname == "expon":
-                interval = stats.expon.interval(oneconfi, mean, sstd)
-            else:
-                pass
-            tmp_json["prob_interval_{}".format(oneconfi)] = str(interval)
-        print(interval, tmp_json)
-        statis_json.append(tmp_json)
+            pass
+        statis_json["prob_interval_{}".format(oneconfi)] = str(interval)
+    print(interval, statis_json)
     # print('随机变量在0处的概率密度是{:.3f},\n    小于0的概率是{:.3f},\n    {}%的置信区间是{}'.format(prob, pre, confid * 100, interval))
     return statis_json
 
