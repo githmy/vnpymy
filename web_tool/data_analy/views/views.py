@@ -166,13 +166,23 @@ def confidence_v(request):
 def data_confidence(request):
     "置信度 汇总输出 内容"
     if len(gdatas.keys()) > 0:
-        if len(cdatas) > 0:
-            ttnewtpd = cdatas[list(gdatas.keys())[0]]
+        # if len(cdatas) > 0:
+        #     ttnewtpd = cdatas[list(gdatas.keys())[0]]
+        # else:
+        tpd = gdatas[list(gdatas.keys())[0]]
+        tprob = request.GET.get("reply_prob")
+        tposit = request.GET.get("reply_posit")
+        if tposit == "":
+            tposit = None
         else:
-            tpd = gdatas[list(gdatas.keys())[0]]
-            showjson = show_all_confids(tpd, alpha=0.05)
-            cdatas[list(gdatas.keys())[0]] = pd.DataFrame(showjson)
-            ttnewtpd = cdatas[list(gdatas.keys())[0]]
+            tposit = float(tposit)
+        if tprob == "":
+            tprob = 0.95
+        else:
+            tprob = float(tprob)
+        showjson = show_all_confids(tpd, prob=tprob, posit=tposit)
+        cdatas[list(gdatas.keys())[0]] = pd.DataFrame(showjson)
+        ttnewtpd = cdatas[list(gdatas.keys())[0]]
         qd = btUrldecode(request.GET, ttnewtpd.columns)
         outjson = data_list_core(ttnewtpd, qd)
         outjson['_'] = request.GET.get('_', 0)

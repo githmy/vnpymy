@@ -22,6 +22,7 @@ from web_tool import views
 urlpatterns = [
     # url('admin/', admin.site.urls),
     url(r'data_analy/', include(('data_analy.urls.views_urls', 'data_analy'), namespace='data_analy')),
+    # url(r'^hyp_test$', views.hyp_test, name='hyp_test'),
     url(r'^$', views.index, name='root_index'),
 ]
 
