@@ -230,9 +230,18 @@ def show1confids(xdata, colname="colname", prob=0.95, posit=None):
         p = 0.3
         cent_prob = stats.bernoulli.pmf(mean, p, mean)  # 概率密度: 在0处概率密度值
     elif funcname == "binom":
-        n = 5
-        p = 0.3
-        cent_prob = stats.binom.pmf(mean, n, p, mean)  # 概率密度: 在0处概率密度值
+        norm_samples = copy.deepcopy(xdata)
+        norm_samples[norm_samples[:] > 0.5] = 1
+        norm_samples[norm_samples[:] <= 0.5] = 0
+        posi_num = sum(norm_samples)
+        p = posi_num / sample_num
+        cent_prob = stats.binom.pmf(posi_num, sample_num, p)  # 概率密度: 在0处概率密度值
+        bound_above = stats.binom.ppf(1 - confid, sample_num, p)
+        bound_below = stats.binom.ppf(confid, sample_num, p)
+        bound_interval = stats.binom.interval(confid, sample_num, p)  # 概率密度: 在0处概率密度值
+        if posit is not None:
+            prob_above = stats.binom.sf(posit, sample_num, p)  # 概率密度: 在0处概率密度值
+            prob_below = stats.binom.cdf(posit, sample_num, p)  # 概率密度: 在0处概率密度值
     elif funcname == "beta":
         a, b = 2.31, 0.627
         cent_prob = stats.beta.pdf(mean, a, b, mean, sstd)  # 概率密度: 在0处概率密度值
@@ -292,24 +301,21 @@ if __name__ == '__main__':
     sample_num = 1000
     norm_samples = stats.norm.rvs(loc=mean, scale=sstd, size=sample_num)
     print(confid, mean, sstd, 1000)
-    cent_prob = stats.norm.pdf(mean, mean, sstd)  # 概率密度: 在0处概率密度值
-    bound_above = stats.norm.ppf(1 - confid, mean, sstd)
-    bound_below = stats.norm.ppf(confid, mean, sstd)
-    bound_interval = stats.norm.interval(confid, mean, sstd)
-    mean_b_hyp_above = stats.norm.ppf(1 - confid, 0, sstd / sqrt(sample_num)) + mean
-    mean_b_hyp_below = stats.norm.ppf(confid, 0, sstd / sqrt(sample_num)) + mean
-    mean_b_hyp_interval = np.array(stats.norm.interval(confid, 0, sstd / sqrt(sample_num)))
-    mean_b_hyp_interval = list(mean_b_hyp_interval + mean)
-    print(mean_b_hyp_above)
-    print(stats.norm.ppf(1 - confid, mean, sstd / sqrt(sample_num)))
-    if posit is not None:
-        prob_above = stats.norm.sf(posit, mean, sstd)
-        prob_below = stats.norm.cdf(posit, mean, sstd)
-        mean_p_hyp_above = stats.norm.sf(posit, mean, sstd / sqrt(sample_num))
-        mean_p_hyp_below = stats.norm.cdf(posit, mean, sstd / sqrt(sample_num))
-    # print(bound_above, bound_below, bound_interval)
-    # print(mean_b_hyp_above, mean_b_hyp_below, mean_b_hyp_interval)
-    # print(prob_above, prob_below, mean_p_hyp_above, mean_p_hyp_below)
+    n = 5
+    norm_samples[norm_samples[:] > 0.5] = 1
+    norm_samples[norm_samples[:] <= 0.5] = 0
+    # print(sum(norm_samples), norm_samples)
+    posi_num = sum(norm_samples)
+    p = posi_num / sample_num
+    cent_prob = stats.binom.pmf(posi_num, sample_num, p)  # 概率密度: 在0处概率密度值
+    bound_above = stats.binom.ppf(1 - confid, sample_num, p)
+    bound_below = stats.binom.ppf(confid, sample_num, p)
+    bound_interval = stats.binom.interval(confid, sample_num, p)  # 概率密度: 在0处概率密度值
+    prob_above = stats.binom.sf(posi_num, sample_num, p)  # 概率密度: 在0处概率密度值
+    prob_below = stats.binom.cdf(posi_num, sample_num, p)  # 概率密度: 在0处概率密度值
+    print(posi_num, sample_num, p)
+    print(bound_above, bound_below, bound_interval)
+    print(cent_prob, prob_above, prob_below)
     exit()
     xdata = np.linspace(-15, 5, 30)
     print(xdata)
