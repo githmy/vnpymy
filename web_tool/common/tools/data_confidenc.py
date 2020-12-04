@@ -99,44 +99,81 @@ def plot_confidence(expect=0, std=1, datanum=30):
 
 
 def show_all_confids(xdata, prob=0.95, posit=None):
+    " 1. 不同函数类型，不同输入预处理。 2. 调用核心。"
     collist = xdata.columns
     outjson = []
-    funcnames = ["uniform", "norm", "student", "laplace", "rayleigh", "F", "beta", "chi2", "expon"]
-    funceven = ["bernoulli", "binom", "poisson", "multinomial", "dirichlet", "geom"]
-    allfuncs = funcnames + funceven
-    for colname in collist:
-        if colname.split("_")[0] not in allfuncs:
-            continue
-        statis_json = show1confids(xdata, colname=colname, prob=prob, posit=posit)
+    # funcnames = ["uniform", "norm", "student", "laplace", "rayleigh", "F", "beta", "chi2", "expon"]
+    # funceven = ["bernoulli", "binom", "poisson", "multinomial", "dirichlet", "geom"]
+    compose1_cols = ["norm", "student", "laplace", "rayleigh", "binom", "poisson", ]  # 循环每列
+    compose2_cols = ["F"]  # 循环每列
+    compose_all_cols = ["chi2"]  # 所有一起
+    back_cols = ["uniform", "beta", "expon", "bernoulli", "multinomial", "dirichlet", "geom"]
+    # 按不同的处理方式对数据分组。
+    for item in compose1_cols:
+        c1_list = []
+        for colname in collist:
+            if colname.split("_")[0] == item:
+                c1_list.append(colname)
+        for i1x in c1_list:
+            statis_json = show1confids(xdata[[i1x]], colname=[i1x], prob=prob, posit=posit)
+            outjson.append(statis_json)
+    for item in compose2_cols:
+        c2_list = []
+        for colname in collist:
+            if colname.split("_")[0] == item:
+                c2_list.append(colname)
+        for i2x in itertools.permutations(c2_list, 2):
+            i2x = list(i2x)
+            statis_json = show1confids(xdata[i2x], colname=i2x, prob=prob, posit=posit)
+            outjson.append(statis_json)
+    for item in compose_all_cols:
+        ca_list = []
+        for colname in collist:
+            if colname.split("_")[0] == item:
+                ca_list.append(colname)
+        statis_json = show1confids(xdata[ca_list], colname=ca_list, prob=prob, posit=posit)
         outjson.append(statis_json)
     return outjson
 
 
-def show1confids(xdata, colname="colname", prob=0.95, posit=None):
+def show1confids(xdata, colname=["colname"], prob=0.95, posit=None):
     """ 
-    根据prob，输出预测区间; 根据prob，输出位置的上下概率, 
+    每次处理一种函数的一个数据集。根据prob，输出预测区间; 根据prob，输出位置的上下概率。 
     """
-    funcnames = ["uniform", "norm", "student", "laplace", "rayleigh", "F", "beta", "chi2", "expon"]
-    funceven = ["bernoulli", "binom", "poisson", "multinomial", "dirichlet", "geom"]
-    allfuncs = funcnames + funceven
+    compose1_cols = ["norm", "student", "laplace", "rayleigh", "binom", "poisson", ]  # 循环每列
+    compose2_cols = ["F"]  # 循环每列
+    compose_all_cols = ["chi2"]  # 所有一起
+    back_cols = ["uniform", "beta", "expon", "bernoulli", "multinomial", "dirichlet", "geom"]
+    # funcnames = ["uniform", "norm", "student", "laplace", "rayleigh", "F", "beta", "chi2", "expon"]
+    # funceven = ["bernoulli", "binom", "poisson", "multinomial", "dirichlet", "geom"]
+    # allfuncs = funcnames + funceven
+    allfuncs = compose1_cols + compose2_cols + compose_all_cols + back_cols
+    if colname is None or len(colname) == 0:
+        raise Exception("输入列名不合法{}".format(colname))
     funcname = None
     for ifuncname in allfuncs:
-        if re.match(r'^{}_'.format(ifuncname), colname):
+        if ifuncname == colname[0].split("_")[0]:
             funcname = ifuncname
             break
     if funcname is None:
-        raise Exception("输入名不合法{}".format(colname))
+        raise Exception("输入列名不合法{}".format(colname))
     confid = prob
     xdata = np.array(xdata)
-    mean = xdata.mean()
-    sstd = xdata.std()
-    sample_num = xdata.size
-    v = sample_num - 1
     statis_json = {}
-    statis_json["colname"] = colname
-    statis_json["mean"] = mean
-    statis_json["sstd"] = sstd
+    statis_json["colname"] = "+".join(colname)
     # https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.chi2.html
+    if funcname in compose1_cols:
+        mean = xdata.mean()
+        sstd = xdata.std()
+        sample_num = xdata.size
+        v = sample_num - 1
+        statis_json["mean"] = mean
+        statis_json["sstd"] = sstd
+        pass
+    if funcname in compose2_cols:
+        pass
+    if funcname in compose_all_cols:
+        pass
     cent_prob = ""
     bound_interval = ""
     bound_above = ""
@@ -219,6 +256,7 @@ def show1confids(xdata, colname="colname", prob=0.95, posit=None):
     elif funcname == "F":
         df1 = 3
         df2 = 5
+        print("xdata.shape", xdata.shape)
         cent_prob = stats.f.pdf(mean, df1, df2, mean, sstd)  # 概率密度: 在0处概率密度值
         bound_above = stats.f.ppf(1 - confid, mean, sstd)
         bound_below = stats.f.ppf(confid, mean, sstd)
@@ -253,14 +291,15 @@ def show1confids(xdata, colname="colname", prob=0.95, posit=None):
             prob_below = stats.beta.cdf(confid, a, b, mean, sstd)
     elif funcname == "poisson":
         # mean == sstd
-        p = 0.3
-        cent_prob = stats.poisson.pmf(mean, p, mean)  # 概率密度: 在0处概率密度值
-        bound_above = stats.poisson.ppf(1 - confid, mean, sstd)
-        bound_below = stats.poisson.ppf(confid, mean, sstd)
-        bound_interval = stats.poisson.interval(confid, mean, sstd)
+        alltime = sum(xdata)
+        mean = sample_num / alltime
+        cent_prob = stats.poisson.pmf(mean, mean)  # 概率密度: 在mean处概率密度值
+        bound_above = stats.poisson.ppf(1 - confid, mean)
+        bound_below = stats.poisson.ppf(confid, mean)
+        bound_interval = stats.poisson.interval(confid, mean)
         if posit is not None:
-            prob_above = stats.poisson.sf(confid, mean, sstd)
-            prob_below = stats.poisson.cdf(confid, mean, sstd)
+            prob_above = stats.poisson.sf(confid, mean)
+            prob_below = stats.poisson.cdf(confid, mean)
     elif funcname == "geom":
         p = 0.3
         cent_prob = stats.geom.pmf(mean, p, mean)  # 概率密度: 在0处概率密度值
