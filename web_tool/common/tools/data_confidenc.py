@@ -29,6 +29,13 @@ from pylab import *
 import scipy.stats as stats  # 该模块包含了所有的统计分析函数
 import statistics as bstat
 
+# funcnames = ["uniform", "norm", "student", "laplace", "rayleigh", "F", "beta", "chi2", "expon"]
+# funceven = ["bernoulli", "binom", "poisson", "multinomial", "dirichlet", "geom"]
+compose1_cols = ["uniform", "norm", "student", "laplace", "rayleigh", "binom", "poisson", "expon", ]  # 循环每列
+compose2_cols = ["F", "student2"]  # 循环每列
+compose_all_cols = ["chi2c", "chi2n"]  # 所有一起
+back_cols = ["beta", "bernoulli", "multinomial", "dirichlet", "geom"]
+
 
 def static_func():
     "给出xy分布，拟合分布的参数"
@@ -102,12 +109,6 @@ def show_all_confids(xdata, prob=0.95, posit=None):
     " 1. 不同函数类型，不同输入预处理。 2. 调用核心。"
     collist = xdata.columns
     outjson = []
-    # funcnames = ["uniform", "norm", "student", "laplace", "rayleigh", "F", "beta", "chi2", "expon"]
-    # funceven = ["bernoulli", "binom", "poisson", "multinomial", "dirichlet", "geom"]
-    compose1_cols = ["norm", "student", "laplace", "rayleigh", "binom", "poisson", ]  # 循环每列
-    compose2_cols = ["F"]  # 循环每列
-    compose_all_cols = ["chi2"]  # 所有一起
-    back_cols = ["uniform", "beta", "expon", "bernoulli", "multinomial", "dirichlet", "geom"]
     # 按不同的处理方式对数据分组。
     for item in compose1_cols:
         c1_list = []
@@ -122,7 +123,8 @@ def show_all_confids(xdata, prob=0.95, posit=None):
         for colname in collist:
             if colname.split("_")[0] == item:
                 c2_list.append(colname)
-        for i2x in itertools.permutations(c2_list, 2):
+        # for i2x in itertools.permutations(c2_list, 2):
+        for i2x in itertools.combinations(c2_list, 2):
             i2x = list(i2x)
             statis_json = show1confids(xdata[i2x], colname=i2x, prob=prob, posit=posit)
             outjson.append(statis_json)
@@ -140,13 +142,6 @@ def show1confids(xdata, colname=["colname"], prob=0.95, posit=None):
     """ 
     每次处理一种函数的一个数据集。根据prob，输出预测区间; 根据prob，输出位置的上下概率。 
     """
-    compose1_cols = ["norm", "student", "laplace", "rayleigh", "binom", "poisson", ]  # 循环每列
-    compose2_cols = ["F"]  # 循环每列
-    compose_all_cols = ["chi2"]  # 所有一起
-    back_cols = ["uniform", "beta", "expon", "bernoulli", "multinomial", "dirichlet", "geom"]
-    # funcnames = ["uniform", "norm", "student", "laplace", "rayleigh", "F", "beta", "chi2", "expon"]
-    # funceven = ["bernoulli", "binom", "poisson", "multinomial", "dirichlet", "geom"]
-    # allfuncs = funcnames + funceven
     allfuncs = compose1_cols + compose2_cols + compose_all_cols + back_cols
     if colname is None or len(colname) == 0:
         raise Exception("输入列名不合法{}".format(colname))
@@ -160,20 +155,8 @@ def show1confids(xdata, colname=["colname"], prob=0.95, posit=None):
     confid = prob
     xdata = np.array(xdata)
     statis_json = {}
+    # statis_json["colname"] = "__".join(colname)
     statis_json["colname"] = "+".join(colname)
-    # https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.chi2.html
-    if funcname in compose1_cols:
-        mean = xdata.mean()
-        sstd = xdata.std()
-        sample_num = xdata.size
-        v = sample_num - 1
-        statis_json["mean"] = mean
-        statis_json["sstd"] = sstd
-        pass
-    if funcname in compose2_cols:
-        pass
-    if funcname in compose_all_cols:
-        pass
     cent_prob = ""
     bound_interval = ""
     bound_above = ""
@@ -185,138 +168,235 @@ def show1confids(xdata, colname=["colname"], prob=0.95, posit=None):
     mean_b_hyp_below = ""
     mean_p_hyp_above = ""
     mean_p_hyp_below = ""
-    if funcname == "uniform":
-        # [loc, loc + scale]
-        cent_prob = stats.uniform.pdf(mean, mean - sstd * 1.733, mean + sstd * 1.733)
-        bound_above = stats.norm.ppf(1 - confid, mean - sstd * 1.733, mean + sstd * 1.733)
-        bound_below = stats.norm.ppf(confid, mean - sstd * 1.733, mean + sstd * 1.733)
-        bound_interval = stats.uniform.interval(confid, mean - sstd * 1.733, mean + sstd * 1.733)
-        if posit is not None:
-            prob_above = stats.uniform.sf(confid, mean - sstd * 1.733, mean + sstd * 1.733)
-            prob_below = stats.uniform.cdf(confid, mean - sstd * 1.733, mean + sstd * 1.733)
-    elif funcname == "norm":
-        cent_prob = stats.norm.pdf(mean, mean, sstd)  # 概率密度: 在0处概率密度值
-        bound_above = stats.norm.ppf(1 - confid, mean, sstd)
-        bound_below = stats.norm.ppf(confid, mean, sstd)
-        bound_interval = stats.norm.interval(confid, mean, sstd)
-        mean_b_hyp_above = stats.norm.ppf(1 - confid, mean, sstd / sqrt(sample_num))
-        mean_b_hyp_below = stats.norm.ppf(confid, mean, sstd / sqrt(sample_num))
-        mean_b_hyp_interval = stats.norm.interval(confid, mean, sstd / sqrt(sample_num))
-        if posit is not None:
-            prob_above = stats.norm.sf(posit, mean, sstd)
-            prob_below = stats.norm.cdf(posit, mean, sstd)
-            mean_p_hyp_above = stats.norm.sf(posit, mean, sstd / sqrt(sample_num))
-            mean_p_hyp_below = stats.norm.cdf(posit, mean, sstd / sqrt(sample_num))
-    elif funcname == "student":
-        cent_prob = stats.t.pdf(mean, v, mean, sstd)  # 概率密度: 在0处概率密度值
-        bound_above = stats.t.ppf(1 - confid, v, mean, sstd)
-        bound_below = stats.t.ppf(confid, v, mean, sstd)
-        bound_interval = stats.t.interval(confid, v, mean, sstd)
-        mean_b_hyp_above = stats.norm.ppf(1 - confid, v, mean, sstd / sqrt(sample_num))
-        mean_b_hyp_below = stats.norm.ppf(confid, v, mean, sstd / sqrt(sample_num))
-        mean_b_hyp_interval = stats.norm.interval(confid, v, mean, sstd / sqrt(sample_num))
-        if posit is not None:
-            prob_above = stats.t.sf(confid, v, mean, sstd)
-            prob_below = stats.t.cdf(confid, v, mean, sstd)
-            mean_p_hyp_above = stats.t.sf(posit, v, mean, sstd / sqrt(sample_num))
-            mean_p_hyp_below = stats.t.cdf(posit, v, mean, sstd / sqrt(sample_num))
-    elif funcname == "laplace":
-        cent_prob = stats.laplace.pdf(mean, mean, sstd)  # 概率密度: 在0处概率密度值
-        bound_above = stats.laplace.ppf(1 - confid, mean, sstd)
-        bound_below = stats.laplace.ppf(confid, mean, sstd)
-        bound_interval = stats.laplace.interval(confid, mean, sstd)
-        if posit is not None:
-            prob_above = stats.laplace.sf(confid, mean, sstd)
-            prob_below = stats.laplace.cdf(confid, mean, sstd)
-    elif funcname == "rayleigh":
-        cent_prob = stats.rayleigh.pdf(mean, mean, sstd)  # 概率密度: 在0处概率密度值
-        bound_above = stats.rayleigh.ppf(1 - confid, mean, sstd)
-        bound_below = stats.rayleigh.ppf(confid, mean, sstd)
-        bound_interval = stats.rayleigh.interval(confid, mean, sstd)
-        if posit is not None:
-            prob_above = stats.rayleigh.sf(confid, mean, sstd)
-            prob_below = stats.rayleigh.cdf(confid, mean, sstd)
-    elif funcname == "chi2":
-        # 2*mean == sstd
-        cent_prob = stats.chi2.pdf(mean, v, mean, sstd)  # 概率密度: 在0处概率密度值
-        bound_above = stats.chi2.ppf(1 - confid, v, mean, sstd)
-        bound_below = stats.chi2.ppf(confid, v, mean, sstd)
-        bound_interval = stats.chi2.interval(confid, v, mean, sstd)
-        if posit is not None:
-            prob_above = stats.chi2.sf(confid, v, mean, sstd)
-            prob_below = stats.chi2.cdf(confid, v, mean, sstd)
-    elif funcname == "expon":
-        cent_prob = stats.expon.pdf(mean, mean, sstd)  # 概率密度: 在0处概率密度值
-        bound_above = stats.expon.ppf(1 - confid, mean, sstd)
-        bound_below = stats.expon.ppf(confid, mean, sstd)
-        bound_interval = stats.expon.interval(confid, mean, sstd)
-        if posit is not None:
-            prob_above = stats.expon.sf(confid, mean, sstd)
-            prob_below = stats.expon.cdf(confid, mean, sstd)
-    elif funcname == "F":
-        df1 = 3
-        df2 = 5
-        print("xdata.shape", xdata.shape)
-        cent_prob = stats.f.pdf(mean, df1, df2, mean, sstd)  # 概率密度: 在0处概率密度值
-        bound_above = stats.f.ppf(1 - confid, mean, sstd)
-        bound_below = stats.f.ppf(confid, mean, sstd)
-        bound_interval = stats.f.interval(confid, mean, sstd)
-        if posit is not None:
-            prob_above = stats.f.sf(confid, mean, sstd)
-            prob_below = stats.f.cdf(confid, mean, sstd)
-    elif funcname == "bernoulli":
-        p = 0.3
-        cent_prob = stats.bernoulli.pmf(mean, p, mean)  # 概率密度: 在0处概率密度值
-    elif funcname == "binom":
-        norm_samples = copy.deepcopy(xdata)
-        norm_samples[norm_samples[:] > 0.5] = 1
-        norm_samples[norm_samples[:] <= 0.5] = 0
-        posi_num = sum(norm_samples)
-        p = posi_num / sample_num
-        cent_prob = stats.binom.pmf(posi_num, sample_num, p)  # 概率密度: 在0处概率密度值
-        bound_above = stats.binom.ppf(1 - confid, sample_num, p)
-        bound_below = stats.binom.ppf(confid, sample_num, p)
-        bound_interval = stats.binom.interval(confid, sample_num, p)  # 概率密度: 在0处概率密度值
-        if posit is not None:
-            prob_above = stats.binom.sf(posit, sample_num, p)  # 概率密度: 在0处概率密度值
-            prob_below = stats.binom.cdf(posit, sample_num, p)  # 概率密度: 在0处概率密度值
-    elif funcname == "beta":
-        a, b = 2.31, 0.627
-        cent_prob = stats.beta.pdf(mean, a, b, mean, sstd)  # 概率密度: 在0处概率密度值
-        bound_above = stats.beta.ppf(1 - confid, a, b, mean, sstd)
-        bound_below = stats.beta.ppf(confid, a, b, mean, sstd)
-        bound_interval = stats.beta.interval(confid, a, b, mean, sstd)
-        if posit is not None:
-            prob_above = stats.beta.sf(confid, a, b, mean, sstd)
-            prob_below = stats.beta.cdf(confid, a, b, mean, sstd)
-    elif funcname == "poisson":
-        # mean == sstd
-        alltime = sum(xdata)
-        mean = sample_num / alltime
-        cent_prob = stats.poisson.pmf(mean, mean)  # 概率密度: 在mean处概率密度值
-        bound_above = stats.poisson.ppf(1 - confid, mean)
-        bound_below = stats.poisson.ppf(confid, mean)
-        bound_interval = stats.poisson.interval(confid, mean)
-        if posit is not None:
-            prob_above = stats.poisson.sf(confid, mean)
-            prob_below = stats.poisson.cdf(confid, mean)
-    elif funcname == "geom":
-        p = 0.3
-        cent_prob = stats.geom.pmf(mean, p, mean)  # 概率密度: 在0处概率密度值
-    else:
-        pass
-    statis_json["center_prob_density"] = cent_prob
+    statis_json["mean"] = ""
+    statis_json["sstd"] = ""
+    # https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.chi2.html
+    if funcname in compose1_cols:
+        mean = xdata.mean()
+        sstd = xdata.std()
+        sample_num = xdata.size
+        v = sample_num - 1
+        statis_json["mean"] = mean
+        statis_json["sstd"] = sstd
+        if funcname == "uniform":
+            # [loc, loc + scale]
+            cent_prob = stats.uniform.pdf(mean, mean - sstd * 1.733, mean + sstd * 1.733)
+            bound_above = stats.norm.ppf(1 - confid, mean - sstd * 1.733, mean + sstd * 1.733)
+            bound_below = stats.norm.ppf(confid, mean - sstd * 1.733, mean + sstd * 1.733)
+            bound_interval = stats.uniform.interval(confid, mean - sstd * 1.733, mean + sstd * 1.733)
+            if posit is not None:
+                prob_above = stats.uniform.sf(confid, mean - sstd * 1.733, mean + sstd * 1.733)
+                prob_below = stats.uniform.cdf(confid, mean - sstd * 1.733, mean + sstd * 1.733)
+        elif funcname == "norm":
+            cent_prob = stats.norm.pdf(mean, mean, sstd)  # 概率密度: 在0处概率密度值
+            bound_above = stats.norm.ppf(1 - confid, mean, sstd)
+            bound_below = stats.norm.ppf(confid, mean, sstd)
+            bound_interval = stats.norm.interval(confid, mean, sstd)
+            mean_b_hyp_above = stats.norm.ppf(1 - confid, mean, sstd / sqrt(sample_num))
+            mean_b_hyp_below = stats.norm.ppf(confid, mean, sstd / sqrt(sample_num))
+            mean_b_hyp_interval = stats.norm.interval(confid, mean, sstd / sqrt(sample_num))
+            if posit is not None:
+                prob_above = stats.norm.sf(posit, mean, sstd)
+                prob_below = stats.norm.cdf(posit, mean, sstd)
+                mean_p_hyp_above = stats.norm.sf(posit, mean, sstd / sqrt(sample_num))
+                mean_p_hyp_below = stats.norm.cdf(posit, mean, sstd / sqrt(sample_num))
+        elif funcname == "student":
+            cent_prob = stats.t.pdf(mean, v, mean, sstd)  # 概率密度: 在0处概率密度值
+            bound_above = stats.t.ppf(1 - confid, v, mean, sstd)
+            bound_below = stats.t.ppf(confid, v, mean, sstd)
+            bound_interval = stats.t.interval(confid, v, mean, sstd)
+            mean_b_hyp_above = stats.t.ppf(1 - confid, v, mean, sstd / sqrt(sample_num))
+            mean_b_hyp_below = stats.t.ppf(confid, v, mean, sstd / sqrt(sample_num))
+            mean_b_hyp_interval = stats.t.interval(confid, v, mean, sstd / sqrt(sample_num))
+            if posit is not None:
+                prob_above = stats.t.sf(confid, v, mean, sstd)
+                prob_below = stats.t.cdf(confid, v, mean, sstd)
+                mean_p_hyp_above = stats.t.sf(posit, v, mean, sstd / sqrt(sample_num))
+                mean_p_hyp_below = stats.t.cdf(posit, v, mean, sstd / sqrt(sample_num))
+        elif funcname == "laplace":
+            cent_prob = stats.laplace.pdf(mean, mean, sstd)  # 概率密度: 在0处概率密度值
+            bound_above = stats.laplace.ppf(1 - confid, mean, sstd)
+            bound_below = stats.laplace.ppf(confid, mean, sstd)
+            bound_interval = stats.laplace.interval(confid, mean, sstd)
+            mean_b_hyp_above = stats.laplace.ppf(1 - confid, mean, sstd / sqrt(sample_num))
+            mean_b_hyp_below = stats.laplace.ppf(confid, mean, sstd / sqrt(sample_num))
+            mean_b_hyp_interval = stats.laplace.interval(confid, mean, sstd / sqrt(sample_num))
+            if posit is not None:
+                prob_above = stats.laplace.sf(confid, mean, sstd)
+                prob_below = stats.laplace.cdf(confid, mean, sstd)
+                mean_p_hyp_above = stats.laplace.sf(posit, mean, sstd / sqrt(sample_num))
+                mean_p_hyp_below = stats.laplace.cdf(posit, mean, sstd / sqrt(sample_num))
+        elif funcname == "rayleigh":
+            cent_prob = stats.rayleigh.pdf(mean, mean, sstd)  # 概率密度: 在0处概率密度值
+            bound_above = stats.rayleigh.ppf(1 - confid, mean, sstd)
+            bound_below = stats.rayleigh.ppf(confid, mean, sstd)
+            bound_interval = stats.rayleigh.interval(confid, mean, sstd)
+            mean_b_hyp_above = stats.rayleigh.ppf(1 - confid, mean, sstd / sqrt(sample_num))
+            mean_b_hyp_below = stats.rayleigh.ppf(confid, mean, sstd / sqrt(sample_num))
+            mean_b_hyp_interval = stats.rayleigh.interval(confid, mean, sstd / sqrt(sample_num))
+            if posit is not None:
+                prob_above = stats.rayleigh.sf(confid, mean, sstd)
+                prob_below = stats.rayleigh.cdf(confid, mean, sstd)
+                mean_p_hyp_above = stats.rayleigh.sf(posit, mean, sstd / sqrt(sample_num))
+                mean_p_hyp_below = stats.rayleigh.cdf(posit, mean, sstd / sqrt(sample_num))
+        elif funcname == "binom":
+            norm_samples = np.copy(xdata)
+            norm_samples[norm_samples[:] > 0.5] = 1
+            norm_samples[norm_samples[:] <= 0.5] = 0
+            posi_num = sum(norm_samples)
+            p = posi_num / sample_num
+            cent_prob = stats.binom.pmf(posi_num, sample_num, p)  # 概率密度: 在0处概率密度值
+            bound_above = stats.binom.ppf(1 - confid, sample_num, p)
+            bound_below = stats.binom.ppf(confid, sample_num, p)
+            bound_interval = stats.binom.interval(confid, sample_num, p)  # 概率密度: 在0处概率密度值
+            mean_b_hyp_above = stats.binom.ppf(1 - confid, mean, sstd / sqrt(sample_num))
+            mean_b_hyp_below = stats.binom.ppf(confid, mean, sstd / sqrt(sample_num))
+            mean_b_hyp_interval = stats.binom.interval(confid, mean, sstd / sqrt(sample_num))
+            if posit is not None:
+                prob_above = stats.binom.sf(posit, sample_num, p)  # 概率密度: 在0处概率密度值
+                prob_below = stats.binom.cdf(posit, sample_num, p)  # 概率密度: 在0处概率密度值
+                mean_p_hyp_above = stats.binom.sf(posit, mean, sstd / sqrt(sample_num))
+                mean_p_hyp_below = stats.binom.cdf(posit, mean, sstd / sqrt(sample_num))
+        elif funcname == "poisson":
+            # mean == sstd
+            alltime = sum(xdata)
+            mean = sample_num / alltime
+            cent_prob = stats.poisson.pmf(mean, mean)  # 概率密度: 在mean处概率密度值
+            bound_above = stats.poisson.ppf(1 - confid, mean)
+            bound_below = stats.poisson.ppf(confid, mean)
+            bound_interval = stats.poisson.interval(confid, mean)
+            mean_b_hyp_above = stats.poisson.ppf(1 - confid, mean, sstd / sqrt(sample_num))
+            mean_b_hyp_below = stats.poisson.ppf(confid, mean, sstd / sqrt(sample_num))
+            mean_b_hyp_interval = stats.poisson.interval(confid, mean, sstd / sqrt(sample_num))
+            if posit is not None:
+                prob_above = stats.poisson.sf(confid, mean)
+                prob_below = stats.poisson.cdf(confid, mean)
+                mean_p_hyp_above = stats.poisson.sf(posit, mean, sstd / sqrt(sample_num))
+                mean_p_hyp_below = stats.poisson.cdf(posit, mean, sstd / sqrt(sample_num))
+        elif funcname == "expon":
+            cent_prob = stats.expon.pdf(mean, mean, sstd)  # 概率密度: 在0处概率密度值
+            bound_above = stats.expon.ppf(1 - confid, mean, sstd)
+            bound_below = stats.expon.ppf(confid, mean, sstd)
+            bound_interval = stats.expon.interval(confid, mean, sstd)
+            mean_b_hyp_above = stats.expon.ppf(1 - confid, mean, sstd / sqrt(sample_num))
+            mean_b_hyp_below = stats.expon.ppf(confid, mean, sstd / sqrt(sample_num))
+            mean_b_hyp_interval = stats.expon.interval(confid, mean, sstd / sqrt(sample_num))
+            if posit is not None:
+                prob_above = stats.expon.sf(confid, mean, sstd)
+                prob_below = stats.expon.cdf(confid, mean, sstd)
+                mean_p_hyp_above = stats.expon.sf(posit, mean, sstd / sqrt(sample_num))
+                mean_p_hyp_below = stats.expon.cdf(posit, mean, sstd / sqrt(sample_num))
+        else:
+            pass
+    if funcname in compose2_cols:
+        samples1 = xdata[:, 0]
+        samples2 = xdata[:, 1]
+        samples1 = samples1[samples1 != ""]
+        samples2 = samples2[samples2 != ""]
+        if funcname == "F":
+            tff = np.var(samples1) / np.var(samples2)
+            df1 = len(samples1) - 1
+            df2 = len(samples2) - 1
+            # mean = stats.f.stats(df1, df2, 0, 1,moments='m') # moments=’mvsk’
+            cent_prob = stats.f.pdf(tff, df1, df2, 0, 1)  # 概率密度: 在0处概率密度值
+            bound_above = stats.f.ppf(1 - confid, 0, 1)
+            bound_below = stats.f.ppf(confid, 0, 1)
+            bound_interval = stats.f.interval(confid, 0, 1)
+            if posit is not None:
+                prob_above = stats.f.sf(confid, 0, 1)
+                prob_below = stats.f.cdf(confid, 0, 1)
+        elif funcname == "student2":
+            _, pval = stats.ttest_ind(samples1, samples2, equal_var=False)
+            confid =1-pval
+            mean1 = np.mean(samples1)
+            var1 = np.var(samples1)
+            sstd1 = np.std(samples1)
+            mean2 = np.mean(samples2)
+            var2 = np.var(samples2)
+            t2v = (mean1 - mean2) / np.sqrt(var1 / len(samples1) + var2 / len(samples2))
+            cent_prob = stats.norm.pdf(mean1-mean2, mean1, sstd1)  # 概率密度: 在0处概率密度值
+            bound_above = stats.norm.ppf(pval, mean1, sstd1)
+            bound_below = stats.norm.ppf(confid, mean1, sstd1)
+            bound_interval = stats.norm.interval(confid, mean1, sstd1)
+            if posit is not None:
+                prob_above = stats.norm.sf(confid, mean1, sstd1)
+                prob_below = stats.norm.cdf(confid, mean1, sstd1)
+        else:
+            pass
+    if funcname in compose_all_cols:
+        xyshape = xdata.shape
+        colns = xyshape[1]
+        if funcname == "chi2c":
+            # 连续公式
+            c2 = []
+            v = 0
+            for icol in range(colns):
+                tsam = xdata[:, icol]
+                tsam = tsam[tsam != ""]
+                chi12 = np.sum(np.square((tsam - np.mean(tsam)) / np.std(tsam)))
+                c2.append(chi12)
+                v += len(tsam) - 1
+            v -= colns
+            c2 = sum(c2)
+            # 输出求解
+            cent_prob = stats.chi2.pdf(c2, v, 0, 1)  # 概率密度: 在0处概率密度值
+            bound_above = stats.chi2.ppf(1 - confid, v, 0, 1)
+            bound_below = stats.chi2.ppf(confid, v, 0, 1)
+            bound_interval = stats.chi2.interval(confid, v, 0, 1)
+            if posit is not None:
+                prob_above = stats.chi2.sf(confid, v, 0, 1)
+                prob_below = stats.chi2.cdf(confid, v, 0, 1)
+        elif funcname == "chi2n":
+            tsam = np.copy(xdata)
+            tsam[...][tsam[...] == ""] = 0
+            tsam = tsam.astype(np.float32)
+            # 离散公式，未修正。应该考虑
+            sc = np.sum(tsam, axis=0)
+            sr = np.sum(tsam, axis=1)
+            xcr = np.expand_dims(sr, axis=1) * np.expand_dims(sc, axis=0)
+            ntsam = tsam * tsam / xcr
+            ntsam = ntsam[~np.isnan(np.sum(ntsam, axis=1))]
+            c2 = np.sum(tsam) * (np.sum(ntsam) - 1)
+            v = (len(sc) - 1) * (len(sr) - 1)
+            # 输出求解
+            cent_prob = stats.chi2.pdf(c2, v, 0, 1)  # 概率密度: 在0处概率密度值
+            bound_above = stats.chi2.ppf(1 - confid, v, 0, 1)
+            bound_below = stats.chi2.ppf(confid, v, 0, 1)
+            bound_interval = stats.chi2.interval(confid, v, 0, 1)
+            if posit is not None:
+                prob_above = stats.chi2.sf(confid, v, 0, 1)
+                prob_below = stats.chi2.cdf(confid, v, 0, 1)
+        else:
+            pass
+    if funcname in back_cols:
+        if funcname == "bernoulli":
+            p = 0.3
+            cent_prob = stats.bernoulli.pmf(mean, p, mean)  # 概率密度: 在0处概率密度值
+        elif funcname == "beta":
+            a, b = 2.31, 0.627
+            cent_prob = stats.beta.pdf(mean, a, b, mean, sstd)  # 概率密度: 在0处概率密度值
+            bound_above = stats.beta.ppf(1 - confid, a, b, mean, sstd)
+            bound_below = stats.beta.ppf(confid, a, b, mean, sstd)
+            bound_interval = stats.beta.interval(confid, a, b, mean, sstd)
+            if posit is not None:
+                prob_above = stats.beta.sf(confid, a, b, mean, sstd)
+                prob_below = stats.beta.cdf(confid, a, b, mean, sstd)
+        elif funcname == "geom":
+            p = 0.3
+            cent_prob = stats.geom.pmf(mean, p, mean)  # 概率密度: 在0处概率密度值
+        else:
+            pass
+    statis_json["center_prob_density"] = "" if cent_prob == "" or np.isnan(cent_prob) else cent_prob
     statis_json["bound_interval"] = str(bound_interval)
-    statis_json["bound_above"] = bound_above
-    statis_json["bound_below"] = bound_below
-    statis_json["prob_above"] = prob_above
-    statis_json["prob_below"] = prob_below
+    statis_json["bound_above"] = "" if bound_above == "" or np.isnan(bound_above) else bound_above
+    statis_json["bound_below"] = "" if bound_below == "" or np.isnan(bound_below) else bound_below
+    statis_json["prob_above"] = "" if prob_above == "" or np.isnan(prob_above) else prob_above
+    statis_json["prob_below"] = "" if prob_below == "" or np.isnan(prob_below) else prob_below
     statis_json["mean_b_hyp_interval"] = str(mean_b_hyp_interval)
-    statis_json["mean_b_hyp_above"] = mean_b_hyp_above
-    statis_json["mean_b_hyp_below"] = mean_b_hyp_below
-    statis_json["mean_p_hyp_above"] = mean_p_hyp_above
-    statis_json["mean_p_hyp_below"] = mean_p_hyp_below
-    # print(statis_json)
+    statis_json["mean_b_hyp_above"] = "" if mean_b_hyp_above == "" or np.isnan(mean_b_hyp_above) else mean_b_hyp_above
+    statis_json["mean_b_hyp_below"] = "" if mean_b_hyp_below == "" or np.isnan(mean_b_hyp_below) else mean_b_hyp_below
+    statis_json["mean_p_hyp_above"] = "" if mean_p_hyp_above == "" or np.isnan(mean_p_hyp_above) else mean_p_hyp_above
+    statis_json["mean_p_hyp_below"] = "" if mean_p_hyp_below == "" or np.isnan(mean_p_hyp_below) else mean_p_hyp_below
     return statis_json
 
 
@@ -335,11 +415,24 @@ def plot_confid(expect=0, std=1, datanum=30):
 
 
 if __name__ == '__main__':
-    confid, mean, sstd = 0.95, 58.090994185762625, 137.2101154542154
+    confid, mean, sstd = 0.95, 58.090994185762625, 37.2101154542154
+    samples1 = stats.norm.rvs(loc=mean, scale=sstd, size=50)
+    samples2 = stats.norm.rvs(loc=mean + 5, scale=sstd + 6, size=30)
+    cent_prob = stats.ttest_ind(samples1, samples2, equal_var=False)
+    mean1 = np.mean(samples1)
+    var1 = np.var(samples1)
+    sstd1 = np.std(samples1)
+    mean2 = np.mean(samples2)
+    var2 = np.var(samples2)
+    t2v = (mean1 - mean2) / np.sqrt(var1 / len(samples1) + var2 / len(samples2))
+    cent_prob = stats.t.cdf(t2v, mean1, sstd1)
+    print(cent_prob)
     posit = 100
-    sample_num = 1000
-    norm_samples = stats.norm.rvs(loc=mean, scale=sstd, size=sample_num)
+    sample_num = 10
+    dfn, dfd = 3, 5
+    norm_samples = stats.chi2.rvs(dfn, size=sample_num)
     print(confid, mean, sstd, 1000)
+    print(norm_samples)
     n = 5
     norm_samples[norm_samples[:] > 0.5] = 1
     norm_samples[norm_samples[:] <= 0.5] = 0

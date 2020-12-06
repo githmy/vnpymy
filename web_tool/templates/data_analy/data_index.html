@@ -13,7 +13,6 @@
 
 {% block body_content %}
     <div class="row">
-{#        <br class="col-xs-12">#}
         <div class="box">
             <div class="row">
                 {% for row in collist %}
@@ -53,8 +52,6 @@
 
         {% include "data_analy/_data_export_model.html" %}
     </div>
-    {#    </div>#}
-    {#    </div>#}
 {% endblock %}
 
 {% block ex_head %}
@@ -87,10 +84,6 @@
                 }
             })
         }
-
-        {#        $("#btn_data_edit").click(function () {#}
-        {#            self.location = currentId + "/change/";#}
-        {#        });#}
 
         $(function () {
             $('#data-table').bootstrapTable(options);

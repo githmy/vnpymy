@@ -30,6 +30,8 @@ rdatas = {}
 # 数据的置信度
 global cdatas
 cdatas = {}
+global ccollist
+ccollist=[]
 # 数据的拟合
 global fdatas
 fdatas = {}
@@ -158,8 +160,8 @@ def confidence_v(request):
     context = {}
     context["collist"] = []
     if len(cdatas.keys()) > 0:
-        tclist = cdatas[list(gdatas.keys())[0]].columns
-        context["collist"] = tclist
+        ccollist = cdatas[list(gdatas.keys())[0]].columns
+        context["collist"] = ccollist
     return render(request, 'data_analy/confidence_index.html', context)
 
 
@@ -183,9 +185,11 @@ def data_confidence(request):
         showjson = show_all_confids(tpd, prob=tprob, posit=tposit)
         cdatas[list(gdatas.keys())[0]] = pd.DataFrame(showjson)
         ttnewtpd = cdatas[list(gdatas.keys())[0]]
-        qd = btUrldecode(request.GET, ttnewtpd.columns)
+        ccollist =ttnewtpd.columns
+        qd = btUrldecode(request.GET, ccollist)
         outjson = data_list_core(ttnewtpd, qd)
         outjson['_'] = request.GET.get('_', 0)
+        # print(outjson)
         return JsonResponse(outjson)
     else:
         return JsonResponse({})

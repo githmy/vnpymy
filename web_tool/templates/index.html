@@ -73,10 +73,11 @@
 {% block body_content %}
     <div>
         <p>
+        <h3>待做时间序列，协整性分析</h3>
         <h3>数据分析</h3>
         <h5>拟合：x_开头的栏作为自变量，排列组合；y_开头的栏作为因变量，遍历。
             <br>
-            正太分析函数：需输入: "norm_", "student_", "chi2_", "F_" 只能两列,
+            正太分析函数：需输入: "norm_", "student_", "student2_" 只能两列,比较总体均值 center_prob是差值位置的概率 上下边界为p值对应的位置, "chi2n_" 频率 "chi2c_" 连续近似 n列, "F_" 只能两列,
             <br>
             "uniform", "laplace", "rayleigh", "expon"
             <br>
@@ -136,6 +137,10 @@
         <br>
         自由度ν大于1. 如果ν等于1，则均值未定义。
         自由度ν大于2. 如果ν小于或等于2，则方差未定义。
+        <br>
+        <h5>6.6 两个students对比：</h5>
+        <img src="/static/img/student2_check.png" class="user-image" alt="User Image">
+        <br>
         <br>
         <h5>6.7 F分布：</h5>
         <img src="/static/img/f_def.png" class="user-image" alt="User Image">
