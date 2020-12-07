@@ -27,7 +27,6 @@ import numpy as np
 from pylab import *
 
 import scipy.stats as stats  # 该模块包含了所有的统计分析函数
-import statistics as bstat
 
 # funcnames = ["uniform", "norm", "student", "laplace", "rayleigh", "F", "beta", "chi2", "expon"]
 # funceven = ["bernoulli", "binom", "poisson", "multinomial", "dirichlet", "geom"]
@@ -35,60 +34,6 @@ compose1_cols = ["uniform", "norm", "student", "laplace", "rayleigh", "binom", "
 compose2_cols = ["F", "student2"]  # 循环每列
 compose_all_cols = ["chi2c", "chi2n"]  # 所有一起
 back_cols = ["beta", "bernoulli", "multinomial", "dirichlet", "geom"]
-
-
-def static_func():
-    "给出xy分布，拟合分布的参数"
-    # 均匀分布
-    # 二项分布
-    # 负二项分布 aka 帕斯卡分布
-    # 几何分布
-    # 泊松分布
-    # gamma分布
-    # 指数分布
-    # 正态分布
-    # student分布
-    # 卡方分布
-    # F分布
-
-    # 数据的算术平均数（“平均数”）。
-    bstat.mean()
-    # 快速的，浮点算数平均数。
-    bstat.fmean()
-    # 数据的几何平均数
-    bstat.geometric_mean()
-    # 数据的调和均值
-    bstat.harmonic_mean()
-    # 数据的中位数（中间值）
-    bstat.median()
-    # 数据的低中位数
-    bstat.median_low()
-    # 数据的高中位数
-    bstat.median_high()
-    # 分组数据的中位数，即第50个百分点。
-    bstat.median_grouped()
-    # 离散的或标称的数据的单个众数（出现最多的值）。
-    bstat.mode()
-    # 离散的或标称的数据的众数列表（出现最多的值）。
-    bstat.multimode()
-    # 将数据以相等的概率分为多个间隔。
-    bstat.quantiles()
-
-    # 根据是否是全量样本调用 p开头的参数或不带p的。
-    # 拟合
-    # 置信
-    #   单类对比相同的 期望
-    #   单类对比相同的 方差
-    #   二类对比相同的 期望
-    #   二类对比相同的 方差
-    # 数据的总体标准差
-    bstat.pstdev()
-    # 数据的总体方差
-    bstat.pvariance()
-    # 数据的样本标准差
-    bstat.stdev()
-    # 数据的样本方差
-    bstat.variance()
 
 
 def plot_confidence(expect=0, std=1, datanum=30):
@@ -307,14 +252,14 @@ def show1confids(xdata, colname=["colname"], prob=0.95, posit=None):
                 prob_below = stats.f.cdf(confid, 0, 1)
         elif funcname == "student2":
             _, pval = stats.ttest_ind(samples1, samples2, equal_var=False)
-            confid =1-pval
+            confid = 1 - pval
             mean1 = np.mean(samples1)
             var1 = np.var(samples1)
             sstd1 = np.std(samples1)
             mean2 = np.mean(samples2)
             var2 = np.var(samples2)
             t2v = (mean1 - mean2) / np.sqrt(var1 / len(samples1) + var2 / len(samples2))
-            cent_prob = stats.norm.pdf(mean1-mean2, mean1, sstd1)  # 概率密度: 在0处概率密度值
+            cent_prob = stats.norm.pdf(mean1 - mean2, mean1, sstd1)  # 概率密度: 在0处概率密度值
             bound_above = stats.norm.ppf(pval, mean1, sstd1)
             bound_below = stats.norm.ppf(confid, mean1, sstd1)
             bound_interval = stats.norm.interval(confid, mean1, sstd1)
@@ -335,8 +280,9 @@ def show1confids(xdata, colname=["colname"], prob=0.95, posit=None):
                 tsam = tsam[tsam != ""]
                 chi12 = np.sum(np.square((tsam - np.mean(tsam)) / np.std(tsam)))
                 c2.append(chi12)
-                v += len(tsam) - 1
-            v -= colns
+                v += len(tsam)
+            v -= 1
+            # 组内 v=n-k 组间 v=k-1 总 v=n-1
             c2 = sum(c2)
             # 输出求解
             cent_prob = stats.chi2.pdf(c2, v, 0, 1)  # 概率密度: 在0处概率密度值
