@@ -31,6 +31,14 @@ import json
 import datetime
 import itertools
 import re
+# from tensorflow.keras.layers import Dense
+# from tensorflow.keras import Input, Model
+from keras.layers import Dense
+from keras import Input, Model
+import keras
+from tcn import TCN
+# , tcn_full_summary
+import tcn
 
 debugsig = 0
 
@@ -71,7 +79,7 @@ def regression_check(x, y, test_size=0.2):
     model_n = PolyLin(degree=best_item[0])
     model_n.fit(x, y)
     best_score = best_item[1][0]
-    best_degree_coff = [best_item[0],best_item[1][1:]]
+    best_degree_coff = [best_item[0], best_item[1][1:]]
     return model_n, best_score, best_degree_coff, scorejson
 
 
@@ -103,35 +111,40 @@ def iter_regression4allxy(t_pandas, max_combnum=2, test_size=0.2):
                     print(datetime.datetime.today())
     return fit_json
 
-def tcn():
+
+def tcn_train(traindata, batch_size, timesteps, input_dim, modelname="default.h5"):
+    """
+    tcn（nb_filters=64，kernel_size=2，nb_stacks=1，
+    expansions=[1，2，4，8，16，32]，
+    padding='causive'，use_skip_connections=true，
+    dropout_rate=0.0，return_sequences=true，
+    activation='linear'，name='tcn'，
+    kernel_initializer='he_normal'，use_batch_norm=false）
+    """
     # https://www.cnpython.com/pypi/keras-tcn
-    batch_size, timesteps, input_dim = None, 20, 1
-
-    def get_x_y(size=1000):
-        pos_indices = np.random.choice(size, size=int(size // 2), replace=False)
-        x_train = np.zeros(shape=(size, timesteps, 1))
-        y_train = np.zeros(shape=(size, 1))
-        x_train[pos_indices, 0] = 1.0
-        y_train[pos_indices, 0] = 1.0
-        return x_train, y_train
-
     i = Input(batch_shape=(batch_size, timesteps, input_dim))
-
-    o = tcn.TCN(i, return_sequences=False)  # regression problem here.
+    o = TCN(return_sequences=False)(i)  # The TCN layers are here.
+    # o = TCN(return_sequences=True)(i)
+    # o = TCN(return_sequences=False)(o)
     o = Dense(1)(o)
 
     m = Model(inputs=[i], outputs=[o])
     m.compile(optimizer='adam', loss='mse')
 
-    x, y = get_x_y()
+    x, y = traindata
     m.fit(x, y, epochs=10, validation_split=0.2)
+    if modelname:
+        m.save(modelname)
+    return m
 
-    o = tcn.TCN(return_sequences=True)(i)
-    o = tcn.TCN(return_sequences=False)(o)
-    # 已有模型
-    model = tcn.compiled_tcn(...)
-    model.fit(x, y)  # Keras model.
-    print(99999)
+
+def tcn_predict(predictdata, batch_size, model=None, modelname="default.h5"):
+    if modelname:
+        model = keras.models.load_model(modelname)  # 加载已训练好的.h5格式的keras模型
+    else:
+        model = model
+    res = model.predict(predictdata, batch_size=10)
+    return res
 
 
 def main():
@@ -158,6 +171,23 @@ def main():
 
 
 if __name__ == '__main__':
-    tcn()
+    batch_size, timesteps, input_dim = None, 20, 1
+
+
+    def get_x_y(size=1000):
+        pos_indices = np.random.choice(size, size=int(size // 2), replace=False)
+        x_train = np.zeros(shape=(size, timesteps, 1))
+        y_train = np.zeros(shape=(size, 1))
+        x_train[pos_indices, 0] = 1.0
+        y_train[pos_indices, 0] = 1.0
+        return x_train, y_train
+
+
+    modelname = "default.h5"
+    traindata = get_x_y()
+    model = tcn_train(traindata, batch_size, timesteps, input_dim, modelname=None)
+    predictdata, _ = get_x_y()
+    resdata = tcn_predict(predictdata, batch_size, model=model, modelname=None)
+    print(resdata, resdata.shape)
     exit()
     main()
