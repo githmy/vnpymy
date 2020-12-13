@@ -30,15 +30,24 @@ import time
 import json
 import datetime
 import itertools
-import re
+import re, math
 # from tensorflow.keras.layers import Dense
 # from tensorflow.keras import Input, Model
+import statsmodels.tsa.stattools as tsat
 from keras.layers import Dense
 from keras import Input, Model
 import keras
 from tcn import TCN
 # , tcn_full_summary
 import tcn
+from statsmodels.tsa import stattools
+from arch.unitroot import ADF
+from statsmodels.graphics.tsaplots import *
+import matplotlib.pyplot as plt
+from statsmodels.tsa import arima_model
+from scipy.stats import pearsonr, spearmanr
+from statsmodels.tsa.stattools import adfuller
+from statsmodels.tsa.stattools import coint
 
 debugsig = 0
 
@@ -147,6 +156,75 @@ def tcn_predict(predictdata, batch_size, model=None, modelname="default.h5"):
     return res
 
 
+def time_squence(data):
+    """
+    arch.arch_model(y, x=None, mean='Constant', lags=0, vol='Garch', p=1, o=0, q=1, power=2.0, dist='Normal', hold_back=None)[source]
+    y ({ndarray, Series, None}) – 因变量
+    x ({np.array, DataFrame}, optional) –外生变量.如果没有外生变量则模型自动省略。
+    mean (str, optional) – 均值模型的名称.目前支持: ‘Constant’, ‘Zero’, ‘ARX’ 以及 ‘HARX’
+    lags (int or list (int), optional) –一个整数标量，用来表明滞后阶，或者使用表明滞后位置的整数列表。
+    vol (str, optional) – 波动率模型的名称，目前支持: ‘GARCH’ （默认）, ‘ARCH’, ‘EGARCH’, ‘FIARCH’ 以及 ‘HARCH’。
+    p (int, optional) – 对称随机数的滞后阶（译者注：即扣除均值后的部分）。
+    o (int, optional) – 非对称数据的滞后阶
+    q (int, optional) – 波动率或对应变量的滞后阶
+    power (float, optional) – 使用GARCH或相关模型的精度
+    dist (int, optional) –
+    误差分布的名称，目前支持下列分布：
+    
+    正态分布: ‘normal’, ‘gaussian’ (default)
+    学生T分布: ‘t’, ‘studentst’
+    偏态学生T分布: ‘skewstudent’, ‘skewt’
+    通用误差分布: ‘ged’, ‘generalized error”
+    
+    statsmodels.tsa.stattools.adfuller(x, maxlag=None, regression='c', autolag='AIC', store=False, regresults=False)[source]¶
+     x: 序列，一维数组
+     maxlag：差分次数
+     regresion:{c:只有常量，
+                ct:有常量项和趋势项，
+                ctt:有常量项、线性和二次趋势项，
+                nc:无任何选项}
+     autolag:{aic or bic: default, then the number of lags is chosen to minimize the corresponding information criterium,
+              None:use the maxlag,
+              t-stat:based choice of maxlag. Starts with maxlag and drops a lag until the t-statistic on the last lag length is significant at the 95 % level.}
+    :return: 
+    """
+
+    LjungBox = stattools.q_stat(stattools.acf(data ** 2)[1:13], len(data))
+    adfretB = ADF(data)
+    print(adfretB.summary().as_text())
+    # print(df.head())
+    aa = tsat.adfuller(data, 1)
+    print(aa)
+    # 将画面一分为二
+    axe1 = plt.subplot(121)
+    axe2 = plt.subplot(122)
+    # 在第一个画面中画出序列的自相关系数图
+    plot1 = plot_acf(data, lags=30, ax=axe1)
+    # 在第二个画面中画出序列的偏自相关系数图
+    plot2 = plot_pacf(data, lags=30, ax=axe2)
+
+    # order表示建立的模型的阶数，c(1,0,1)表示建立的是ARMA(1,1)模型；
+    # 中间的数字0表示使用原始的、未进行过差分（差分次数为0）的数据；
+    # 此处我们无需考虑它
+    model1 = arima_model.ARIMA(data, order=(1, 0, 1)).fit()
+    model1.summary()
+    model1.conf_int()
+    # 绘制时间序列模拟的诊断图
+    stdresid = model1.resid / math.sqrt(model1.sigma2)
+    plt.plot(stdresid)
+    model1.forecast(3)[0]
+
+def correlation(X, Y):
+    # 相关性
+    pearson_corr, pearson_pvalue = pearsonr(X, Y)
+    spearnman_corr, spearnman_pvalue = spearmanr(X, Y)
+    print("Correlation : ", pearson_corr)
+    # 平稳性
+    pvalue = adfuller(some_series)[1]
+    # 协整性
+    _, pvalue, _ = coint(X, Y)
+    print("Cointegration test p-value : ", pvalue)
+
 def main():
     # 构造变量, 数据量小于150，预测准确率加速降低。
     xnum = 10
@@ -185,6 +263,8 @@ if __name__ == '__main__':
 
     modelname = "default.h5"
     traindata = get_x_y()
+    time_squence(traindata[1])
+    exit()
     model = tcn_train(traindata, batch_size, timesteps, input_dim, modelname=None)
     predictdata, _ = get_x_y()
     resdata = tcn_predict(predictdata, batch_size, model=model, modelname=None)

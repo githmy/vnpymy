@@ -73,15 +73,14 @@
 {% block body_content %}
     <div>
         <p>
-        <h2>待做 经典python时间序列，协整性分析，功能组合预测，vnpy使用</h2>
+        <h2>待做 经典python时间序列，自相关，偏自相关，amid，qstatic,adf, 协整性，协整性分析，功能组合预测，vnpy使用</h2>
+        <h2>单标的非平稳，协整，则使用tcn提取特征，脚本解析管道</h2>
         <h3>数据分析</h3>
         <h5>拟合：x_开头的栏作为自变量，排列组合；y_开头的栏作为因变量，遍历。
-            <br>
-            正太分析函数：需输入: "norm_", "student_", "student2_" 只能两列,比较总体均值 center_prob是差值位置的概率 上下边界为p值对应的位置, "chi2n_" 频率 "chi2c_" 连续近似 n列, "F_" 只能两列,
-            <br>
-            "uniform", "laplace", "rayleigh", "expon"
-            <br>
-            二项式分布：需输入: "bernoulli", "binom",0,1数据列， "poisson",间隔数据列
+            <br>正太分析函数：需输入: "norm_", "student_", "student2_" 只能两列,比较总体均值 center_prob是差值位置的概率 上下边界为p值对应的位置, "chi2n_" 频率
+            "chi2c_" 连续近似 n列, "F_" 只能两列,
+            <br>"uniform", "laplace", "rayleigh", "expon"
+            <br>二项式分布：需输入: "bernoulli", "binom",0,1数据列， "poisson",间隔数据列
         </h5>
         <h4>1. 数据列表</h4>
         <h4>2. 置信区间</h4>
@@ -114,7 +113,8 @@
         <br><img src="/static/img/gamma.png" class="user-image" alt="User Image">
         <br>
         <h5>6.5 卡方分布：</h5>ν 是非负整数, 均值是ν，方差是2ν
-        自由度 n 越大, \chi _{n}^{2} 的密度曲线越趋于对称, n 越小, 曲线越不对称. 当 n = 1, 2 时曲线是单调下降趋于 0. 当 n ≥ 3时曲线有单峰, 从 0 开始先单调上升, 在一定位置达到峰值, 然后单下降趋向于 0。
+        自由度 n 越大, \chi _{n}^{2} 的密度曲线越趋于对称, n 越小, 曲线越不对称. 当 n = 1, 2 时曲线是单调下降趋于 0. 当 n ≥ 3时曲线有单峰, 从 0 开始先单调上升,
+        在一定位置达到峰值, 然后单下降趋向于 0。
         <br>两个主要应用：拟合性检验和独立性检验。卡方检验应用于计数数据的分析，对于总体的分布不作任何假设，因此它又是非参数检验法中的一种。
         <br>概念
         <img src="/static/img/chi2_def.png" class="user-image" alt="User Image">
@@ -213,26 +213,37 @@
         <img src="/static/img/infere_3.png" class="user-image" alt="User Image">
         <img src="/static/img/infere_4.png" class="user-image" alt="User Image">
         <img src="/static/img/infere_last.png" class="user-image" alt="User Image">
-        <p>数据在使用前要注意采用有效的方法收集数据, 如设计好抽样方案, 安排好试验等等. 只有有效的收集了数据, 才能有效地使用数据,开展统计推断工作.获得数据后, 根据问题的特点和抽样方式确定抽样分布, 即统计模型. 基于统计模型, 统计推断问题可以按照如下的步骤进行:
-        确定用于统计推断的合适统计量;
-        寻求统计量的精确分布; 在统计量的精确分布难以求出的情形,可考虑利用中心极限定理或其它极限定理找出统计量的极限分布.
-        基于该统计量的精确分布或极限分布, 求出统计推断问题的精确解或近似解.
-        根据统计推断结果对问题作出解释
+        <p>数据在使用前要注意采用有效的方法收集数据, 如设计好抽样方案, 安排好试验等等. 只有有效的收集了数据, 才能有效地使用数据,开展统计推断工作.获得数据后, 根据问题的特点和抽样方式确定抽样分布, 即统计模型.
+            基于统计模型, 统计推断问题可以按照如下的步骤进行:
+            确定用于统计推断的合适统计量;
+            寻求统计量的精确分布; 在统计量的精确分布难以求出的情形,可考虑利用中心极限定理或其它极限定理找出统计量的极限分布.
+            基于该统计量的精确分布或极限分布, 求出统计推断问题的精确解或近似解.
+            根据统计推断结果对问题作出解释
         </p>
         <br>
         <h3>7. 时间序列：</h3>
-        一个时间序列的概率分布与时间t无关，则称该序列为严格的（狭义的）平稳时间序列。
+        <a href="https://www.cnblogs.com/junge-mike/p/9335054.html">序列详情</a>
         <br>
-        协方差为时间间隔 \small \tau 的函数。 则称该序列为宽平稳时间序列，也叫广义平稳时间序列。
+        <a href="https://blog.csdn.net/weixin_38421869/article/details/83796569">单位根</a>
         <br>
-        2.时序模型的预处理
+        <br>一个时间序列的概率分布与时间t无关，则称该序列为严格的（狭义的）平稳时间序列。
+        <br>协方差为时间间隔 \small \tau 的函数。 则称该序列为宽平稳时间序列，也叫广义平稳时间序列。
+        <br><img src="/static/img/time_model.png" class="user-image" alt="User Image">
+        <br>2.时序模型的预处理
         <br>1. 对于纯随机序列，也称为白噪声序列，序列的各项之间没有任何的关系， 序列在进行完全无序的随机波动， 可以终止对该序列的分析。
         <br>2. 对于平稳非白噪声序列， 它的均值和方差是常数。ARMA 模型是最常用的平稳序列拟合模型。
         <br>3. 对于非平稳序列， 由于它的方差和均值不稳定， 处理方法一般是将其转化成平稳序列。 可以使用ARIMA 模型进行分析。
         <br>对平稳性的检验：
         <br>1.时序图检验：根据平稳时间序列的均值和方差都是常数的特性，平稳序列的时序图显示该序列值时钟在一个参数附近随机波动，而且波动的范围是有界的。如果有明显的趋势或者周期性， 那它通常不是平稳序列。
         <br>2.自相关图检验：平稳序列具有短期相关性， 这个性质表明对平稳序列而言， 通常 只有近期的序列值得影响比较明显， 间隔越远的过去值对现在的值得影响越小。 而非平稳序列的自相关系数衰减的速度比较慢。
-        <br>3.单位根检验：单位根检验是指检验序列中是否存在单位根， 如果存在单位根， 那就是非平稳时间序列。 目前最常用的方法就是单位根检验。
+        <br>3.单位根检验：单位根检验是指检验序列中是否存在单位根， 如果存在单位根， 那就是非平稳时间序列，是零假设，需要大于给定的小P值。 目前最常用的方法就是单位根检验。P值越小，说明越可能是平稳的时间序列。
+        <br>4.三个模型有一个平稳就算平稳。（得出的 P值小）
+        <br><img src="/static/img/root_unit1.png" class="user-image" alt="User Image">
+        <br><img src="/static/img/root_unit2.png" class="user-image" alt="User Image">
+        <br><img src="/static/img/root_unit3.png" class="user-image" alt="User Image">
+        <br><img src="/static/img/time_check.jpg" class="user-image" alt="User Image">
+        <br><img src="/static/img/time_check2.jpg" class="user-image" alt="User Image">
+        <br><img src="/static/img/time_check3.jpg" class="user-image" alt="User Image">
         <br>3.时间序列分析：
         <br>•平稳性：
         <br>•平稳性要求经由样本时间序列所得到的拟合曲线，在未来一段时间内仍然沿着现有的形态‘惯性’地延续下去。
@@ -241,15 +252,47 @@
         <br>•差分法：时间序列在 T 与 T-1 时刻的差值（使用差分使其满足平稳性），一般差分1,2 阶就可以了。
         <br>AR（自回归模型）：
         <br>•描述当前值与历史值之间的关系， 用变量自身的历史时间数据对自身进行预测。自回归模型必须满足平稳性的要求。
-        <img src="/static/img/time_model.png" class="user-image" alt="User Image">
-        <img src="/static/img/time_check.jpg" class="user-image" alt="User Image">
-        <img src="/static/img/time_check2.jpg" class="user-image" alt="User Image">
-        <img src="/static/img/time_check3.jpg" class="user-image" alt="User Image">
+        <img src="/static/img/time_check4.png" class="user-image" alt="User Image">
+        <br>自回归模型的限制：
+        <br>1.自回归模型是使用自身的数据进行预测的
+        <br>2.必须具有平稳性
+        <br>3.必须具有相关性，如果相关性小于 0.5 ， 则不宜使用
+        <br>4.自回归模型只适用于预测与自身前期相关的预测。
+        <br>•MA（移动平均模型）：
+        <br>•移动平均模型关注的是自回归模型中的误差项的累加
+        <br>•移动平均法能有效地消除预测中的随机波动。
+        <br><img src="/static/img/time_check5.png" class="user-image" alt="User Image">
+        <br>•ARMA（自回归平均模型）：
+        <br>•自回归和移动平均的结合。
+        <br><img src="/static/img/time_check6.png" class="user-image" alt="User Image">
+        <br>•ARIMA（p,d,q）差分自回归移动平均模型（Autoregressive Integrated Moving Average Model ,简称ARIMA）
+        <br>•AR 是自回归， p 是自回归项， MA 是移动平均， q 为移动平均项， d 为时间序列称为平稳时 所做的差分次数。
+        <br>•原理： 将非平稳时间序列转换成平稳时间序列， 然后将因变量仅对它的滞后值（p阶）以及随机误差项的现值和滞后值进行回顾所建立的模型。
+        <br>•ARIMA 建模流程：
+        <br>•1.将序列平稳化（差分法确定 d）
+        <br>•2.p 和 q 阶数的确定（ACF 和 PACF 确定）
+        <br>•3.建立模型 ARIMA (p , d , q )
+        <br><img src="/static/img/time_check7.png" class="user-image" alt="User Image">
+        <br>keras_tcn。
+        <br><img src="/static/img/tcn_structure.png" class="user-image" alt="User Image">
         <br>
-        keras_tcn。
-        <br>
-        <img src="/static/img/tcn_structure.png" class="user-image" alt="User Image">
-        <p>--------------</p>
+        <h3>8. 协整分析：</h3>
+        <a href="https://zhuanlan.zhihu.com/p/158871695">协整性</a>
+        <h4>8.1 相关性：</h4>
+        <br>XY相关系数corr(X,Y)=0，未必独立（独立定义P(XY)=P(X)P(Y)），因为XY可能服从非线性的相关关系；而独立一定不相关。
+        <br>corr(X,Y)=0，是指X的线性组合无法解释Y。
+        <br>相关系数介于[-1,1]之间—— ±1是完全线性相关。
+        <br>检测相关性，pearsonr检测的是具体值之间的相关性，spearsonr检测的是rank之间的相关性
+        <br><img src="/static/img/correlation_func.png" class="user-image" alt="User Image">
+        <h4>8.2 单整（Integration）——不是很重要：</h4>
+        <br><img src="/static/img/integration_order.png" class="user-image" alt="User Image">
+        <h4>8.3 协整（Cointegration）：</h4>
+        <br><img src="/static/img/cointegration_func.png" class="user-image" alt="User Image">
+        <h4>8.4 协整VS相关性：</h4>
+        <br>协整不一定相关
+        <br>相关不一定协整
+        <br>在配对交易策略中，协整关系是重点，相关性不用考虑。
+        <br><p>--------------</p>
         <p><h3>标的</h3></p>
     </div>
 {% endblock %}
