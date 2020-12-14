@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import logging.handlers
 import pandas as pd
+import itertools
 
 mpl.rcParams[u'font.sans-serif'] = u'SimHei'
 mpl.rcParams[u'axes.unicode_minus'] = False
@@ -46,7 +47,7 @@ def func_implement(injson):
             restart_name = line["重启"]["功能名"]
             restart_order = line["重启"]["排序号"]
             break
-    # 2. 找到其实行
+    # 2. 找到起始行
     find_counter = 0
     start_id = 0
     for idn, line in enumerate(injson):
@@ -55,38 +56,59 @@ def func_implement(injson):
             if restart_order == find_counter:
                 start_id = idn
                 break
-    # 3. 按顺序加载执行功能
-    # 数据文件只处理csv， 因为excel 长度受限。
+    # 3. 按顺序加载执行功能。 # 数据文件只处理csv， 因为excel 长度受限。
     for idn, line in enumerate(injson):
         if idn < start_id:
             logger1.info("pass command {}".format(line))
             continue
         logger1.info("running command {}".format(line))
         part_name = list(line.keys())[0]
+        commands = line[part_name]
+        file_method = itertools.product(commands["输入数据"], commands["处理方法"])
         if part_name == "数据处理":
-            commands = line[part_name]
-            indatafilelist = commands["输入数据"]
-            for indatafile in indatafilelist:
-                pdobj = pd.read_csv(os.path.join(projectpath,), header=0, encoding="utf8")
-            indatafilelist = commands["处理方法"]
-            indatafilelist = commands["输出数据"]
-            indatafilelist = commands["输出性能"]
-
+            outfilehead = commands["输出数据"]
+            for methodname, datafile in file_method:
+                outfilename = f"{outfilehead}_{datafile}"
+                logger1.info(methodname, datafile, outfilename)
+                pdobj = pd.read_csv(os.path.join(projectpath, datafile), header=0, encoding="utf8")
+                outdata = funcmap[methodname](pdobj)
+                outdata.to_csv(os.path.join(projectpath, outfilename), index=False, header=None, encoding="utf-8")
+            properfilelist = commands["输出性能"]
         elif part_name == "训练拟合":
-            commands = line[part_name]
-            indatafilelist = commands["输入数据"]
+            outfilehead = commands["输出数据"]
+            for methodname, datafile in file_method:
+                outfilename = f"{outfilehead}_{datafile}"
+                logger1.info(methodname, datafile, outfilename)
+                pdobj = pd.read_csv(os.path.join(projectpath, datafile), header=0, encoding="utf8")
+                outdata = funcmap[methodname](pdobj)
+                outdata.to_csv(os.path.join(projectpath, outfilename), index=False, header=None, encoding="utf-8")
+            properfilelist = commands["输出性能"]
         elif part_name == "数据预测":
-            commands = line[part_name]
-            indatafilelist = commands["输入数据"]
+            outfilehead = commands["输出数据"]
+            for methodname, datafile in file_method:
+                outfilename = f"{outfilehead}_{datafile}"
+                logger1.info(methodname, datafile, outfilename)
+                pdobj = pd.read_csv(os.path.join(projectpath, datafile), header=0, encoding="utf8")
+                outdata = funcmap[methodname](pdobj)
+                outdata.to_csv(os.path.join(projectpath, outfilename), index=False, header=None, encoding="utf-8")
+            properfilelist = commands["输出性能"]
         elif part_name == "回测分析":
-            commands = line[part_name]
-            indatafilelist = commands["输入数据"]
+            outfilehead = commands["输出数据"]
+            for methodname, datafile in file_method:
+                outfilename = f"{outfilehead}_{datafile}"
+                logger1.info(methodname, datafile, outfilename)
+                pdobj = pd.read_csv(os.path.join(projectpath, datafile), header=0, encoding="utf8")
+                outdata = funcmap[methodname](pdobj)
+                outdata.to_csv(os.path.join(projectpath, outfilename), index=False, header=None, encoding="utf-8")
+            properfilelist = commands["输出性能"]
         elif part_name == "图形展示":
-            commands = line[part_name]
-            indatafilelist = commands["输入数据"]
+            for methodname, datafile in file_method:
+                outfilename = f"{outfilehead}_{datafile}"
+                logger1.info(methodname, datafile, outfilename)
+                pdobj = pd.read_csv(os.path.join(projectpath, datafile), header=0, encoding="utf8")
+                funcmap[methodname](pdobj)
         else:
             pass
-
     return None
 
 
