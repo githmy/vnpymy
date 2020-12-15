@@ -12,8 +12,16 @@ mpl.rcParams[u'axes.unicode_minus'] = False
 baspath = os.path.join("..", "..", "nocode", "vnpy")
 projectpath = None
 
+# 第一个是数据，第二个是处理参数
 funcmap = {
-
+    "0填充": None,
+    "前填充": None,
+    "后填充": None,
+    "平稳性": None,
+    "相关性": None,
+    "协整性": None,
+    "xgboost": None,
+    "tcn": None,
 }
 
 
@@ -73,7 +81,6 @@ def func_implement(injson):
                 pdobj = pd.read_csv(os.path.join(projectpath, datafile), header=0, encoding="utf8")
                 outdata = funcmap[methodname](pdobj)
                 outdata.to_csv(os.path.join(projectpath, outfilename), index=False, header=None, encoding="utf-8")
-            properfilelist = commands["输出性能"]
         elif part_name == "训练拟合":
             outfilehead = commands["输出数据"]
             for methodname, datafile in file_method:
