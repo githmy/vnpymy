@@ -74,7 +74,7 @@ def func_implement(injson):
         commands = line[part_name]
         file_method = itertools.product(commands["输入数据"], commands["处理方法"])
         if part_name == "数据处理":
-            outfilehead = commands["输出数据"]
+            outfilehead = commands["输出前缀"]
             for methodname, datafile in file_method:
                 outfilename = f"{outfilehead}_{datafile}"
                 logger1.info(methodname, datafile, outfilename)
@@ -82,7 +82,7 @@ def func_implement(injson):
                 outdata = funcmap[methodname](pdobj)
                 outdata.to_csv(os.path.join(projectpath, outfilename), index=False, header=None, encoding="utf-8")
         elif part_name == "训练拟合":
-            outfilehead = commands["输出数据"]
+            outfilehead = commands["输出前缀"]
             for methodname, datafile in file_method:
                 outfilename = f"{outfilehead}_{datafile}"
                 logger1.info(methodname, datafile, outfilename)
@@ -91,7 +91,7 @@ def func_implement(injson):
                 outdata.to_csv(os.path.join(projectpath, outfilename), index=False, header=None, encoding="utf-8")
             properfilelist = commands["输出性能"]
         elif part_name == "数据预测":
-            outfilehead = commands["输出数据"]
+            outfilehead = commands["输出前缀"]
             for methodname, datafile in file_method:
                 outfilename = f"{outfilehead}_{datafile}"
                 logger1.info(methodname, datafile, outfilename)
@@ -100,7 +100,7 @@ def func_implement(injson):
                 outdata.to_csv(os.path.join(projectpath, outfilename), index=False, header=None, encoding="utf-8")
             properfilelist = commands["输出性能"]
         elif part_name == "回测分析":
-            outfilehead = commands["输出数据"]
+            outfilehead = commands["输出前缀"]
             for methodname, datafile in file_method:
                 outfilename = f"{outfilehead}_{datafile}"
                 logger1.info(methodname, datafile, outfilename)
@@ -109,6 +109,7 @@ def func_implement(injson):
                 outdata.to_csv(os.path.join(projectpath, outfilename), index=False, header=None, encoding="utf-8")
             properfilelist = commands["输出性能"]
         elif part_name == "图形展示":
+            outfilehead = commands["输出后缀"]
             for methodname, datafile in file_method:
                 outfilename = f"{outfilehead}_{datafile}"
                 logger1.info(methodname, datafile, outfilename)
