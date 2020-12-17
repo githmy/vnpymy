@@ -5,6 +5,7 @@ import matplotlib as mpl
 import logging.handlers
 import pandas as pd
 import itertools
+from surf.predata import pipe_pad
 
 mpl.rcParams[u'font.sans-serif'] = u'SimHei'
 mpl.rcParams[u'axes.unicode_minus'] = False
@@ -14,7 +15,7 @@ projectpath = None
 
 # 第一个是数据，第二个是处理参数
 funcmap = {
-    "0填充": None,
+    "填充": pipe_pad,
     "前填充": None,
     "后填充": None,
     "平稳性": None,
@@ -75,46 +76,57 @@ def func_implement(injson):
         file_method = itertools.product(commands["输入数据"], commands["处理方法"])
         if part_name == "数据处理":
             outfilehead = commands["输出前缀"]
-            for methodname, datafile in file_method:
+            for datafile, methodname in file_method:
+                funname = list(methodname.keys())[0]
+                funpara = methodname[funname]
                 outfilename = f"{outfilehead}_{datafile}"
-                logger1.info(methodname, datafile, outfilename)
+                logger1.info(funname, datafile, outfilename)
                 pdobj = pd.read_csv(os.path.join(projectpath, datafile), header=0, encoding="utf8")
-                outdata = funcmap[methodname](pdobj)
+                outdata = funcmap[funname](pdobj, funpara)
+                print(outdata)
                 outdata.to_csv(os.path.join(projectpath, outfilename), index=False, header=None, encoding="utf-8")
         elif part_name == "训练拟合":
             outfilehead = commands["输出前缀"]
-            for methodname, datafile in file_method:
+            for datafile, methodname in file_method:
+                funname = list(methodname.keys())[0]
+                funpara = methodname[funname]
                 outfilename = f"{outfilehead}_{datafile}"
-                logger1.info(methodname, datafile, outfilename)
+                logger1.info(funname, datafile, outfilename)
                 pdobj = pd.read_csv(os.path.join(projectpath, datafile), header=0, encoding="utf8")
-                outdata = funcmap[methodname](pdobj)
+                outdata = funcmap[funname](pdobj, funpara)
                 outdata.to_csv(os.path.join(projectpath, outfilename), index=False, header=None, encoding="utf-8")
             properfilelist = commands["输出性能"]
         elif part_name == "数据预测":
             outfilehead = commands["输出前缀"]
-            for methodname, datafile in file_method:
+            for datafile, methodname in file_method:
+                funname = list(methodname.keys())[0]
+                funpara = methodname[funname]
                 outfilename = f"{outfilehead}_{datafile}"
-                logger1.info(methodname, datafile, outfilename)
+                logger1.info(funname, datafile, outfilename)
                 pdobj = pd.read_csv(os.path.join(projectpath, datafile), header=0, encoding="utf8")
-                outdata = funcmap[methodname](pdobj)
+                outdata = funcmap[funname](pdobj, funpara)
                 outdata.to_csv(os.path.join(projectpath, outfilename), index=False, header=None, encoding="utf-8")
             properfilelist = commands["输出性能"]
         elif part_name == "回测分析":
             outfilehead = commands["输出前缀"]
-            for methodname, datafile in file_method:
+            for datafile, methodname in file_method:
+                funname = list(methodname.keys())[0]
+                funpara = methodname[funname]
                 outfilename = f"{outfilehead}_{datafile}"
-                logger1.info(methodname, datafile, outfilename)
+                logger1.info(funname, datafile, outfilename)
                 pdobj = pd.read_csv(os.path.join(projectpath, datafile), header=0, encoding="utf8")
-                outdata = funcmap[methodname](pdobj)
+                outdata = funcmap[funname](pdobj, funpara)
                 outdata.to_csv(os.path.join(projectpath, outfilename), index=False, header=None, encoding="utf-8")
             properfilelist = commands["输出性能"]
         elif part_name == "图形展示":
             outfilehead = commands["输出后缀"]
-            for methodname, datafile in file_method:
+            for datafile, methodname in file_method:
+                funname = list(methodname.keys())[0]
+                funpara = methodname[funname]
                 outfilename = f"{outfilehead}_{datafile}"
-                logger1.info(methodname, datafile, outfilename)
+                logger1.info(funname, datafile, outfilename)
                 pdobj = pd.read_csv(os.path.join(projectpath, datafile), header=0, encoding="utf8")
-                funcmap[methodname](pdobj)
+                funcmap[funname](pdobj, funpara)
         else:
             pass
     return None
