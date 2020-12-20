@@ -292,6 +292,15 @@
         <br>协整不一定相关
         <br>相关不一定协整
         <br>在配对交易策略中，协整关系是重点，相关性不用考虑。
+        <h3>9. 非参数估计</h3>
+        <h4>9.1 kde</h4>
+        <br>Kernel Density Estimation 核密度估计。核密度估计完全利用数据本身信息，避免人为主观带入得先验知识
+        <br>直方图时，需要确定bins。取x的邻域[x-h,x+h]，当h->0的时候.
+        <br>非参数估计里面的bias-variance tradeoff，也就是偏差和方差的平衡。
+        <br>Epanechnikov 内核在均方误差意义下是最优的，效率损失也很小。暂且相信吧。
+        <br>由于高斯内核方便的数学性质，也经常使用 K(x)= ϕ(x)，ϕ(x)为标准正态概率密度函数。
+        <br>对样本点的概率密度进行计算，那拟合过后的概率密度应该核计算的值更加接近才好
+        <br><img src="/static/img/kde_gauss.png" class="user-image" alt="User Image">
         <br><p>--------------</p>
         <p><h3>标的</h3></p>
     </div>
