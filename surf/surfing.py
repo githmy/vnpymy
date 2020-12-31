@@ -1,11 +1,19 @@
-from surf.script_tab import keytab
 import os, json, time, re, codecs
+# 1. 语法检测文件
+from surf.script_tab import keytab
+# 2. 数据清洗文件
+from surf.pre_data import pre_func
+# 3. 性能统计文件
+from surf.ana_data import ana_func
+# 4. 模型训练文件
+from surf.train_data import train_func
+# 5. 图形展示文件
+from surf.show_data import show_func
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import logging.handlers
 import pandas as pd
 import itertools
-from surf.predata import pipe_pad
 
 mpl.rcParams[u'font.sans-serif'] = u'SimHei'
 mpl.rcParams[u'axes.unicode_minus'] = False
@@ -13,17 +21,23 @@ mpl.rcParams[u'axes.unicode_minus'] = False
 baspath = os.path.join("..", "..", "nocode", "vnpy")
 projectpath = None
 
-# 第一个是数据，第二个是处理参数
-funcmap = {
-    "填充": pipe_pad,
-    "前填充": None,
-    "后填充": None,
-    "平稳性": None,
-    "相关性": None,
-    "协整性": None,
-    "xgboost": None,
-    "tcn": None,
-}
+# # 第一个是数据，第二个是处理参数
+# funcmap = {
+#     "填充": pipe_pad,
+#     "前填充": None,
+#     "后填充": None,
+#     "平稳性": None,
+#     "相关性": None,
+#     "协整性": None,
+#     "xgboost": None,
+#     "tcn": None,
+# }
+funcmap = {}
+funcmap.update(pre_func)
+funcmap.update(ana_func)
+funcmap.update(train_func)
+funcmap.update(show_func)
+
 
 
 def check_keytab(injson):
@@ -167,7 +181,8 @@ def main(filepath):
 
 
 if __name__ == '__main__':
-    filepath = os.path.join("demo_script1.json")
+    # filepath = os.path.join("demo1_script.json")
+    filepath = os.path.join("demo2_compete.json")
     # 1. 全局日志
     filehead = ".".join(filepath.split(".")[:-1])
     projectpath = os.path.join(baspath, filehead)

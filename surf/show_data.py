@@ -7,6 +7,10 @@ import pandas as pd
 import itertools
 
 
-def pipe_pad(dataobj, paras={}):
+def pipe_show(dataobj, paras={}):
     outdata = dataobj
     return outdata
+
+show_func = {
+    "显示": pipe_show,
+}
