@@ -365,6 +365,11 @@ class PurgedGroupTimeSeriesSplitStacking(_BaseKFold):
             test_array = test_array[test_group_gap:]
             yield [int(i) for i in train_array], [int(i) for i in val_array], [int(i) for i in test_array]
 
+def split_columns():
+    pass
+
+def split_rows():
+    pass
 
 pre_func = {
     "输入数据": [],
@@ -372,6 +377,6 @@ pre_func = {
     "填充": pipe_pad,
     "前填充": None,
     "后填充": None,
-    "拆列": pipe_pad,
-    "并列": pipe_pad,
+    "拆列": split_columns,
+    "并列": split_rows,
 }
