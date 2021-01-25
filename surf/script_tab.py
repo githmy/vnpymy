@@ -1,3 +1,8 @@
+#
+sector = [
+    "stock",
+    "fund"
+]
 keytab = {
     "功能": [
         "日志设置",
