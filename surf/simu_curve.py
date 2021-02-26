@@ -1,6 +1,8 @@
 import numpy as np
+import pandas as pd
 import scipy.special as sc_special
 from surf.basic_mlp import plot_curve
+import matplotlib.pyplot as plt
 
 
 def levy_flight(n, m, beta):
@@ -26,6 +28,7 @@ def levy_flight(n, m, beta):
 def generate_curve(n, m, beta, scale=0.01, plotsig=False):
     """根据levy步长，生成曲线"""
     steps = levy_flight(n, m, beta)
+    steps = np.squeeze(steps)
     ys = []
     init = 1.0
     # 变换步长，使累计永为正
@@ -77,11 +80,20 @@ def main():
     """
     # 1. 莱维曲线 参数提取，周期曲线复制
     np.random.seed(111)
-    n, m, beta = 1000000, 1, 1.8
-    datas = generate_curve(n, m, beta, scale=0.01, plotsig=True)
     # TODO: 1. 不同的持仓位 2. 不同的幅值比例
-    wealths = strategy_keep50(datas, keep_cap=0.5, plotsig=True)
-    print(wealths[-1], datas[-1], wealths[-1] / datas[-1])
+    n, m, beta = 1000000, 1, 1.8
+    datas = generate_curve(n, m, beta, scale=0.01, plotsig=False)
+    final_profit = []
+    for i1 in range(1, 10):
+        keep_cap = 0.1 * i1
+        print(f"keep cap {keep_cap}")
+        wealths = strategy_keep50(datas, keep_cap=keep_cap, plotsig=False)
+        final_profit.append([wealths, datas[-1], wealths / datas[-1]])
+        print(final_profit[-1])
+    pdobj = pd.DataFrame(final_profit)
+    print(pdobj)
+    pdobj[2].plot()
+    plt.show()
     # 1. 历史回测，压力模拟。
     # 2. 莱维曲线 和资金净流量的方向，历史价位和仓位控制，100个模拟统计，查看分布
     # 2. 资金净流量模型，m2延迟，GDP，国际利率差
