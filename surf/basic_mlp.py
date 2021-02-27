@@ -541,25 +541,24 @@ def dim3_scatter():
 
 
 # 排序显示密度
-def sort_density():
-    target_col = "target"
+def sort_density(pdobj,target_col="target"):
     plt.figure(figsize=(8, 6))
-    plt.scatter(range(train_df.shape[0]), np.sort(train_df[target_col].values))
+    plt.scatter(range(pdobj.shape[0]), np.sort(pdobj[target_col].values))
     plt.xlabel('index', fontsize=12)
     plt.ylabel('Loyalty Score', fontsize=12)
     plt.show()
 
 
 # 显示区间密度
-def range_density():
+def range_density(pdobj,target_col="target"):
     plt.figure(figsize=(12, 8))
-    sns.distplot(train_df[target_col].values, bins=50, kde=False, color="red")
+    # sns.distplot(pdobj[target_col].values, bins=50, kde=False, color="red")
     # 核密度估计 + 统计柱状图
-    sns.distplot(stock['Daily Return'].dropna(), bins=100)
-    # 核密度估计
-    sns.kdeplot(stock['Daily Return'].dropna())
-    # 两支股票的皮尔森相关系数
-    sns.jointplot(stock['Daily Return'], stock['Daily Return'], alpha=0.2)
+    # sns.distplot(pdobj[target_col].dropna(), bins=100)
+    # # 核密度估计
+    sns.kdeplot(pdobj[target_col].dropna())
+    # # 两支股票的皮尔森相关系数
+    # sns.jointplot(pdobj[target_col], pdobj[target_col], alpha=0.2)
     plt.title("Histogram of Loyalty score")
     plt.xlabel('Loyalty score', fontsize=12)
     plt.show()
