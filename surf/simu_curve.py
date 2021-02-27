@@ -82,8 +82,8 @@ def main():
     # 1. 莱维曲线 参数提取，周期曲线复制
     np.random.seed(113)
     # TODO: 1. 不同的持仓位 2. 不同的幅值比例
-    # n, m, beta = 100000000, 1, 1.8
-    n, m, beta = 10, 1, 1.8
+    n, m, beta = 100000000, 1, 1.8
+    # n, m, beta = 10, 1, 1.8
     datas = generate_curve(n, m, beta, scale=0.01, plotsig=False)
     final_profit = []
     for i1 in range(1, 100):
