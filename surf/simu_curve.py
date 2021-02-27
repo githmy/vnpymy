@@ -3,6 +3,7 @@ import pandas as pd
 import scipy.special as sc_special
 from surf.basic_mlp import plot_curve
 import matplotlib.pyplot as plt
+import time
 
 
 def levy_flight(n, m, beta):
@@ -79,18 +80,22 @@ def main():
     :return: 判断 板块 标的
     """
     # 1. 莱维曲线 参数提取，周期曲线复制
-    np.random.seed(111)
+    np.random.seed(113)
     # TODO: 1. 不同的持仓位 2. 不同的幅值比例
-    n, m, beta = 1000000, 1, 1.8
+    # n, m, beta = 100000000, 1, 1.8
+    n, m, beta = 10, 1, 1.8
     datas = generate_curve(n, m, beta, scale=0.01, plotsig=False)
     final_profit = []
-    for i1 in range(1, 10):
-        keep_cap = 0.1 * i1
+    for i1 in range(1, 100):
+        stt = time.time()
+        keep_cap = 0.01 * i1
         print(f"keep cap {keep_cap}")
         wealths = strategy_keep50(datas, keep_cap=keep_cap, plotsig=False)
         final_profit.append([wealths, datas[-1], wealths / datas[-1]])
-        print(final_profit[-1])
+        print((time.time()-stt)/60)
     pdobj = pd.DataFrame(final_profit)
+    print(pdobj)
+    pdobj[2]=np.log10(pdobj[2])
     print(pdobj)
     pdobj[2].plot()
     plt.show()
