@@ -5,6 +5,7 @@ from surf.basic_mlp import *
 import matplotlib.pyplot as plt
 from sklearn.neighbors import KernelDensity
 from sklearn.model_selection import GridSearchCV
+from collections import deque
 import time
 
 
@@ -42,6 +43,7 @@ def generate_curve(n, m, beta, scale=0.01, plotsig=False):
             init = init * (1 + step)
         else:
             init = init / (1 - step)
+        init = 1 + (init - 1) * 0.9999
     if plotsig:
         tlen = len(ys)
         x = list(range(tlen))
@@ -51,38 +53,131 @@ def generate_curve(n, m, beta, scale=0.01, plotsig=False):
     return ys
 
 
-def strategy_keep50(datas, keep_cap=0.5, oper_interval=1, plotsig=False):
-    """根据曲线生成策略参数: 持仓50%"""
+def generate_simucurve():
+    # todo: 待做2
+    pass
 
-    capital_old = 1.0
-    # e_capital_old = 0.0
+
+def strategy_keep50(datas, keep_cap=0.5, oper_interval=1, plotsig=False):
+    """根据曲线生成策略参数: 理想情况 持仓50%"""
+    capital_init = 1e4
+    capital_old = capital_init
     stock_mount_old = 0.0
-    # e_stock_mount_old = 0.0
-    price = 0.0
-    wealth_old = capital_old + price * stock_mount_old
-    # e_wealth_old = pow(10, e_capital_old) + price * stock_mount_old
+    price_old = 0.0
+    price_new = 0.0
+    wealth_old = capital_old + price_new * stock_mount_old
     wealths = []
-    # e_wealths = []
-    for id1, price in enumerate(datas):
+    for id1, price_new in enumerate(datas):
         # 根据昨天的总额，按今天的价格调配
         if id1 % oper_interval != 0:
             continue
-        wealth_old = capital_old + price * stock_mount_old
-        capital_now = wealth_old * keep_cap
-        stock_mount_now = (wealth_old - capital_now) / price
-        capital_old = capital_now
-        stock_mount_old = stock_mount_now
+        wealth_old = capital_old + price_old * stock_mount_old
+        wealth_new = capital_old + price_new * stock_mount_old
+        capital_new = wealth_new * keep_cap
+        stock_mount_new = (wealth_old - capital_new) / price_new
+        wealth_old = wealth_new
+        capital_old = capital_new
+        price_old = price_new
+        stock_mount_old = stock_mount_new
         wealths.append(wealth_old)
+    tlen = len(datas)
+    ratio_all = wealth_old / capital_init
+    ratio_day = pow(ratio_all, 1.0 / tlen)
     if plotsig:
-        tlen = len(datas)
         x = list(range(tlen))
         titles = ["stock", "wealth"]
         # 检查画图
         plot_curve(x, [datas, wealths], titles)
-    return wealth_old
+    return ratio_day
+
+
+def strategy_turtle(datas, win=10, up_sell=[0.5], down_sell=[-0.1], up_buy=[0.1, 0.2], down_buy=[-0.5], plotsig=False):
+    """根据曲线生成策略参数: 考虑成本条件"""
+
+    # todo: 待做1
+    def yield_turle_sig(dq, up_sell=[0.5], down_sell=[-0.1], up_buy=[0.1, 0.2], down_buy=[-0.5]):
+        maxdq = max(dq[:-1])
+        if dq[-1] > maxdq:
+            up_buy_index = 0
+            price_in_anchor = maxdq
+        if up_buy_index != -1:
+            float_ratio = price_new / price_in_anchor - 1
+            if float_ratio > up_buy[up_buy_index] and float_ratio > up_sell[0]:
+                # 获利卖
+                up_sell_index = 1
+                up_buy_index = -1
+                yield up_sell_index, down_sell_index, up_buy_index, down_buy_index
+            elif float_ratio > up_buy[up_buy_index] and float_ratio < up_sell[0]:
+                # 加仓位
+                for idub, upbuy in enumerate(up_buy):
+                    if float_ratio > upbuy and float_ratio > up_buy_index:
+                        up_buy_index = idub
+                yield up_sell_index, down_sell_index, up_buy_index, down_buy_index
+            elif float_ratio < up_buy[up_buy_index]:
+                # 获利卖
+                up_sell_index = 1
+                up_buy_index = -1
+                yield up_sell_index, down_sell_index, up_buy_index, down_buy_index
+            else:
+                pass
+        yield up_sell_index, down_sell_index, up_buy_index, down_buy_index
+
+    # 初始化当前状态
+    fee_static = 0.0
+    fee_ratio = 0.0
+    # fee_static = 5
+    # fee_ratio = 2e-4
+    capital_init = 1e4
+    capital_old = capital_init
+    stock_mount_old = 0.0
+    price_old = 0.0
+    price_new = 0.0
+    price_in_anchor = -1.0
+    wealth_old = capital_old + price_new * stock_mount_old
+    wealths = []
+    # 初始化判断标记
+    dq = deque(maxlen=win)
+    up_sell_index, down_sell_index, up_buy_index, down_buy_index = -1, -1, -1, -1
+    for id1, price_new in enumerate(datas):
+        dq.append([price_new])
+        if len(dq) < win or price_new is None:
+            continue
+        up_sell_index, down_sell_index, up_buy_index, down_buy_index \
+            = yield_turle_sig(dq, up_sell, down_sell, up_buy, down_buy)
+        wealth_old = capital_old + price_old * stock_mount_old
+        wealth_new = capital_old + price_new * stock_mount_old
+        keep_cap = 0.5
+        capital_new = wealth_new * keep_cap
+        stock_mount_new = (wealth_old - capital_new) / price_new
+        # 调仓触发条件 海龟
+        if up_buy_index != -1:
+            # 涨了售出
+            pass
+        elif up_sell_index != -1:
+            # 跌了买入
+            pass
+        else:
+            # 跳过
+            continue
+
+        wealth_old = wealth_new
+        capital_old = capital_new
+        price_old = price_new
+        stock_mount_old = stock_mount_new
+        wealths.append(wealth_old)
+    tlen = len(datas)
+    ratio_all = wealth_old / capital_init
+    ratio_day = pow(ratio_all, 1.0 / tlen)
+    if plotsig:
+        x = list(range(tlen))
+        titles = ["stock", "wealth"]
+        # 检查画图
+        plot_curve(x, [datas, wealths], titles)
+    return ratio_day
 
 
 def best_capital(datas, oper_intervals=[1], plotsig=False):
+    # 不同操作周期的天化，年化。交易成本。
     best_profits = {}
     for oper_interval in oper_intervals:
         print(f"oper_interval: {oper_interval}")
@@ -92,23 +187,19 @@ def best_capital(datas, oper_intervals=[1], plotsig=False):
             # keep_cap = 0.01 * i1
             keep_cap = 0.02 * i1
             print(f"  keep cap {keep_cap}")
-            wealths = strategy_keep50(datas, keep_cap=keep_cap, oper_interval=oper_interval, plotsig=False)
-            final_profit.append([keep_cap, wealths, datas[-1], wealths / datas[-1]])
+            # 1. 固定仓位
+            # ratio_day = strategy_keep50(datas, keep_cap=keep_cap, oper_interval=oper_interval, plotsig=False)
+            # 2. 海龟
+            ratio_day = strategy_turtle(datas, win=10, up_sell=[0.5], down_sell=[-0.1], up_buy=[0.1, 0.2],
+                                        down_buy=[-0.5], plotsig=False)
+            final_profit.append([keep_cap, ratio_day])
             print(" ", (time.time() - stt) / 60)
         sort_profit = sorted(final_profit, key=lambda x: x[-1])
         best_profits[oper_interval] = sort_profit[-1][-1]
-        # if plotsig:
-        #     pdobj = pd.DataFrame(final_profit)
-        #     print(pdobj)
-        #     pdobj.set_index(0, inplace=True)
-        #     pdobj[3] = np.log10(pdobj[3])
-        #     pdobj[3].plot()
-        #     plt.show()
     if plotsig:
         pdobj = pd.DataFrame(best_profits.items())
         print(pdobj)
         pdobj.set_index(0, inplace=True)
-        # pdobj[1] = np.log10(pdobj[1])
         pdobj[1].plot()
         plt.show()
     sort_inter = sorted(best_profits.items(), key=lambda x: x[-1])
@@ -161,7 +252,9 @@ def main():
     # n, m, beta = 10, 1, 1.8
     n, m, beta = 10000000, 1, 1.8
     datas = generate_curve(n, m, beta, scale=0.01, plotsig=False)
-    oper_intervals = list(range(1, 240))
+    print(datas[-1])
+    # oper_intervals = list(range(1, 4))
+    oper_intervals = [1, 5, 21, 126, 252]
     sort_inter = best_capital(datas, oper_intervals=oper_intervals, plotsig=True)
     print(sort_inter)
     exit()
