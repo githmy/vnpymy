@@ -97,24 +97,31 @@ def strategy_turtle(datas, win=10, up_sell=[0.5], down_sell=[-0.1], up_buy=[0.1,
     # todo: 待做1
     def yield_turle_sig(dq, up_sell=[0.5], down_sell=[-0.1], up_buy=[0.1, 0.2], down_buy=[-0.5]):
         maxdq = max(dq[:-1])
-        if dq[-1] > maxdq:
+        if dq[-1] > maxdq and up_buy_index == -1:
             up_buy_index = 0
             price_in_anchor = maxdq
+            price_out_anchor = dq[-1]
         if up_buy_index != -1:
-            float_ratio = price_new / price_in_anchor - 1
-            if float_ratio > up_buy[up_buy_index] and float_ratio > up_sell[0]:
+            if price_out_anchor < price_new:
+                price_out_anchor = price_new
+            float_in_ratio = price_new / price_in_anchor - 1
+            float_out_ratio = price_new / price_out_anchor - 1
+            if float_in_ratio > up_buy[up_buy_index] and float_in_ratio > up_sell[0]:
                 # 获利卖
+                # 上向 期下 卖出
                 up_sell_index = 1
                 up_buy_index = -1
                 yield up_sell_index, down_sell_index, up_buy_index, down_buy_index
-            elif float_ratio > up_buy[up_buy_index] and float_ratio < up_sell[0]:
+            elif float_in_ratio > up_buy[up_buy_index] and float_in_ratio < up_sell[0]:
                 # 加仓位
+                # 上向 期上 买入
                 for idub, upbuy in enumerate(up_buy):
-                    if float_ratio > upbuy and float_ratio > up_buy_index:
+                    if float_in_ratio > upbuy and float_in_ratio > up_buy_index:
                         up_buy_index = idub
                 yield up_sell_index, down_sell_index, up_buy_index, down_buy_index
-            elif float_ratio < up_buy[up_buy_index]:
-                # 获利卖
+            elif float_out_ratio < up_sell[0]:
+                # 止损
+                # 下向 期下 卖出
                 up_sell_index = 1
                 up_buy_index = -1
                 yield up_sell_index, down_sell_index, up_buy_index, down_buy_index
@@ -148,12 +155,11 @@ def strategy_turtle(datas, win=10, up_sell=[0.5], down_sell=[-0.1], up_buy=[0.1,
             continue
         up_sell_index, down_sell_index, up_buy_index, down_buy_index \
             = yield_turle_sig(dq, up_sell, down_sell, up_buy, down_buy)
-        if 1:
-            pass
-            up_buy_ratio=capital_old /up_buy_length
-            down_sell_ratio=capital_old /down_sell_length
-            up_buy_ratio=stock_mount_old/up_buy_length
-            down_sell_ratio=stock_mount_old/down_sell_length
+        if price_in_anchor:
+            up_buy_ratio = capital_old / up_buy_length
+            down_sell_ratio = capital_old / down_sell_length
+            up_buy_ratio = stock_mount_old / up_buy_length
+            down_sell_ratio = stock_mount_old / down_sell_length
         wealth_old = capital_old + price_old * stock_mount_old
         wealth_new = capital_old + price_new * stock_mount_old
         keep_cap = 0.5
@@ -163,6 +169,7 @@ def strategy_turtle(datas, win=10, up_sell=[0.5], down_sell=[-0.1], up_buy=[0.1,
         if up_buy_index != -1:
             # 上向 期上 买入
             pass
+            price_new / price_in_anchor - 1
         elif up_sell_index != -1:
             # 上向 期下 买出
             pass
