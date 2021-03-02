@@ -92,7 +92,7 @@ def strategy_keep50(datas, keep_cap=0.5, oper_interval=1, plotsig=False):
 
 
 def strategy_turtle(datas, win=10, up_sell=[0.5], down_sell=[-0.1], up_buy=[0.1, 0.2], down_buy=[-0.5], plotsig=False):
-    """根据曲线生成策略参数: 考虑成本条件"""
+    """根据曲线生成策略参数: turtle 加减仓策略"""
 
     # todo: 待做1
     def yield_turle_sig(dq, up_sell=[0.5], down_sell=[-0.1], up_buy=[0.1, 0.2], down_buy=[-0.5]):
@@ -133,6 +133,10 @@ def strategy_turtle(datas, win=10, up_sell=[0.5], down_sell=[-0.1], up_buy=[0.1,
     price_old = 0.0
     price_new = 0.0
     price_in_anchor = -1.0
+    up_buy_length = len(up_buy)
+    up_sell_length = len(up_sell)
+    down_buy_length = len(down_buy)
+    down_sell_length = len(down_sell)
     wealth_old = capital_old + price_new * stock_mount_old
     wealths = []
     # 初始化判断标记
@@ -144,6 +148,12 @@ def strategy_turtle(datas, win=10, up_sell=[0.5], down_sell=[-0.1], up_buy=[0.1,
             continue
         up_sell_index, down_sell_index, up_buy_index, down_buy_index \
             = yield_turle_sig(dq, up_sell, down_sell, up_buy, down_buy)
+        if 1:
+            pass
+            up_buy_ratio=capital_old /up_buy_length
+            down_sell_ratio=capital_old /down_sell_length
+            up_buy_ratio=stock_mount_old/up_buy_length
+            down_sell_ratio=stock_mount_old/down_sell_length
         wealth_old = capital_old + price_old * stock_mount_old
         wealth_new = capital_old + price_new * stock_mount_old
         keep_cap = 0.5
@@ -151,11 +161,18 @@ def strategy_turtle(datas, win=10, up_sell=[0.5], down_sell=[-0.1], up_buy=[0.1,
         stock_mount_new = (wealth_old - capital_new) / price_new
         # 调仓触发条件 海龟
         if up_buy_index != -1:
-            # 涨了售出
+            # 上向 期上 买入
             pass
         elif up_sell_index != -1:
-            # 跌了买入
+            # 上向 期下 买出
             pass
+        elif down_buy_index != -1:
+            # 下向 期上 买入
+            pass
+        elif down_sell_index != -1:
+            # 下向 期下 买出
+            pass
+
         else:
             # 跳过
             continue
@@ -188,10 +205,31 @@ def best_capital(datas, oper_intervals=[1], plotsig=False):
             keep_cap = 0.02 * i1
             print(f"  keep cap {keep_cap}")
             # 1. 固定仓位
-            # ratio_day = strategy_keep50(datas, keep_cap=keep_cap, oper_interval=oper_interval, plotsig=False)
+            ratio_day = strategy_keep50(datas, keep_cap=keep_cap, oper_interval=oper_interval, plotsig=False)
+            final_profit.append([keep_cap, ratio_day])
+            print(" ", (time.time() - stt) / 60)
+        sort_profit = sorted(final_profit, key=lambda x: x[-1])
+        best_profits[oper_interval] = sort_profit[-1][-1]
+    if plotsig:
+        pdobj = pd.DataFrame(best_profits.items())
+        print(pdobj)
+        pdobj.set_index(0, inplace=True)
+        pdobj[1].plot()
+        plt.show()
+    sort_inter = sorted(best_profits.items(), key=lambda x: x[-1])
+    return sort_inter[-1]
+
+
+def best_turtle_gene(datas, win=10, up_sell=[0.5], down_sell=[-0.1], up_buy=[0.1, 0.2], down_buy=[-0.5], plotsig=False):
+    # 不同操作周期的天化，年化。交易成本。
+    best_profits = {}
+    final_profit = []
+    if 1:
+        for i1 in range(1, 50):
+            stt = time.time()
             # 2. 海龟
-            ratio_day = strategy_turtle(datas, win=10, up_sell=[0.5], down_sell=[-0.1], up_buy=[0.1, 0.2],
-                                        down_buy=[-0.5], plotsig=False)
+            ratio_day = strategy_turtle(datas, win=win, up_sell=up_sell, down_sell=down_sell, up_buy=up_buy,
+                                        down_buy=down_buy, plotsig=False)
             final_profit.append([keep_cap, ratio_day])
             print(" ", (time.time() - stt) / 60)
         sort_profit = sorted(final_profit, key=lambda x: x[-1])
@@ -233,10 +271,13 @@ def main():
     1. 不同金融曲线, 最好的现金比例 为 50
     n, m, beta = 10000000, 1, 1.8
     datas = generate_curve(n, m, beta, scale=0.01, plotsig=False)
-    oper_interval=1
-    best_cap = best_capital(datas, oper_interval=1,plotsig=False)
-    print("best_cap hold:", best_cap)
-    2. 数据密度统计 拟合
+    # oper_intervals = list(range(1, 252))
+    oper_intervals = [1, 5, 21, 126, 252]
+    sort_inter = best_capital(datas, oper_intervals=oper_intervals, plotsig=True)
+    print(sort_inter)
+    2. 遗传算法找最佳的turtle策略
+    best_turtle_gene
+    5. 数据密度统计 拟合
     n, m, beta = 10000, 1, 1.8
     steps = levy_flight(n, m, beta)
     steps = np.squeeze(steps)
@@ -250,16 +291,14 @@ def main():
     np.random.seed(113)
     # n, m, beta = 10000000, 1, 1.8
     # n, m, beta = 10, 1, 1.8
-    n, m, beta = 10000000, 1, 1.8
+    n, m, beta = 10000, 1, 1.8
     datas = generate_curve(n, m, beta, scale=0.01, plotsig=False)
     print(datas[-1])
-    # oper_intervals = list(range(1, 4))
-    oper_intervals = [1, 5, 21, 126, 252]
-    sort_inter = best_capital(datas, oper_intervals=oper_intervals, plotsig=True)
+    sort_inter = best_turtle_gene(datas, win=10, up_sell=[0.5], down_sell=[-0.1], up_buy=[0.1, 0.2], down_buy=[-0.5],
+                                  plotsig=False)
     print(sort_inter)
     exit()
     # 1. 历史回测，压力模拟。
-    # 2. 莱维曲线 和资金净流量的方向，历史价位和仓位控制，100个模拟统计，查看分布
     # 2. 资金净流量模型，m2延迟，GDP，国际利率差
     # 3. 资金流入，筹码集中的 交易市场，板块，个股
     # 3. 量比，委托比，内外盘 历史记录
