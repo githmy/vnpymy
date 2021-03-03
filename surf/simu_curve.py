@@ -109,26 +109,47 @@ def strategy_turtle(datas, win=10, up_sell=[0.5], down_sell=[-0.1], up_buy=[0.1,
             if float_in_ratio > up_buy[up_buy_index] and float_in_ratio > up_sell[0]:
                 # 获利卖
                 # 上向 期下 卖出
-                up_buy_sig[up_buy_index] = 0
+                for idus, upsell in enumerate(up_sell):
+                    if float_in_ratio > upsell and idus > up_sell_index:
+                        up_sell_index = idus
+                # 保持资金百分比
+                cap_keep = wealth_new * (up_sell_index + 1) / up_sell_length
+                if cap_keep > capital_old:
+                    stock_mount_new -= (cap_keep - capital_old) / dq[-1]
+                    capital_new = cap_keep
+                else:
+                    stock_mount_new = stock_mount_old
+                    capital_new = capital_old
                 yield None
             elif float_in_ratio > up_buy[up_buy_index] and float_in_ratio < up_sell[0]:
                 # 加仓位
                 # 上向 期上 买入
-                stock_mount_new += up_buy_ratio / dq[-1]
-                capital_new -= up_buy_ratio
                 for idub, upbuy in enumerate(up_buy):
                     if float_in_ratio > upbuy and idub > up_buy_index:
                         up_buy_index = idub
+                stock_mount_keep = (1 + up_buy_index) / up_buy_length / dq[-1]
+                if stock_mount_keep > stock_mount_old:
+                    capital_new -= (stock_mount_keep - stock_mount_old) * dq[-1]
+                    stock_mount_new = stock_mount_keep
+                else:
+                    capital_new = capital_old
+                    stock_mount_new = stock_mount_old
                 up_buy_sig[up_buy_index] = 1
                 yield None
-            elif float_out_ratio < up_sell[0]:
+            elif float_out_ratio < down_sell[down_sell_index]:
                 # 止损
                 # 下向 期下 卖出
-                up_sell_index = 1
-                up_buy_index = -1
-                up_buy_sig[up_buy_index] = 0
-                stock_mount_new -= up_buy_ratio / dq[-1]
-                capital_new += up_sell
+                for idds, downsell in enumerate(down_sell):
+                    if float_in_ratio > downsell and idds > down_sell_index:
+                        down_sell_index = idds
+                # 保持资金百分比
+                cap_keep = wealth_new * (down_sell_index + 1) / down_sell_length
+                if cap_keep > capital_old:
+                    stock_mount_new -= (cap_keep - capital_old) / dq[-1]
+                    capital_new = cap_keep
+                else:
+                    stock_mount_new = stock_mount_old
+                    capital_new = capital_old
                 yield None
             else:
                 pass
@@ -171,8 +192,6 @@ def strategy_turtle(datas, win=10, up_sell=[0.5], down_sell=[-0.1], up_buy=[0.1,
             down_sell_ratio = stock_mount_old / down_sell_length
         wealth_old = capital_old + price_old * stock_mount_old
         wealth_new = capital_old + price_new * stock_mount_old
-        keep_cap = 0.5
-        capital_new = wealth_new * keep_cap
         stock_mount_new = (wealth_old - capital_new) / price_new
         # 调仓触发条件 海龟
         if up_buy_index != -1:
