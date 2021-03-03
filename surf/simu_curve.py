@@ -102,32 +102,37 @@ def strategy_turtle(datas, win=10, up_sell=[0.5], down_sell=[-0.1], up_buy=[0.1,
             price_in_anchor = maxdq
             price_out_anchor = dq[-1]
         if up_buy_index != -1:
-            if price_out_anchor < price_new:
-                price_out_anchor = price_new
-            float_in_ratio = price_new / price_in_anchor - 1
-            float_out_ratio = price_new / price_out_anchor - 1
+            if price_out_anchor < dq[-1]:
+                price_out_anchor = dq[-1]
+            float_in_ratio = dq[-1] / price_in_anchor - 1
+            float_out_ratio = dq[-1] / price_out_anchor - 1
             if float_in_ratio > up_buy[up_buy_index] and float_in_ratio > up_sell[0]:
                 # 获利卖
                 # 上向 期下 卖出
-                up_sell_index = 1
-                up_buy_index = -1
-                yield up_sell_index, down_sell_index, up_buy_index, down_buy_index
+                up_buy_sig[up_buy_index] = 0
+                yield None
             elif float_in_ratio > up_buy[up_buy_index] and float_in_ratio < up_sell[0]:
                 # 加仓位
                 # 上向 期上 买入
+                stock_mount_new += up_buy_ratio / dq[-1]
+                capital_new -= up_buy_ratio
                 for idub, upbuy in enumerate(up_buy):
-                    if float_in_ratio > upbuy and float_in_ratio > up_buy_index:
+                    if float_in_ratio > upbuy and idub > up_buy_index:
                         up_buy_index = idub
-                yield up_sell_index, down_sell_index, up_buy_index, down_buy_index
+                up_buy_sig[up_buy_index] = 1
+                yield None
             elif float_out_ratio < up_sell[0]:
                 # 止损
                 # 下向 期下 卖出
                 up_sell_index = 1
                 up_buy_index = -1
-                yield up_sell_index, down_sell_index, up_buy_index, down_buy_index
+                up_buy_sig[up_buy_index] = 0
+                stock_mount_new -= up_buy_ratio / dq[-1]
+                capital_new += up_sell
+                yield None
             else:
                 pass
-        yield up_sell_index, down_sell_index, up_buy_index, down_buy_index
+        yield None
 
     # 初始化当前状态
     fee_static = 0.0
@@ -144,6 +149,10 @@ def strategy_turtle(datas, win=10, up_sell=[0.5], down_sell=[-0.1], up_buy=[0.1,
     up_sell_length = len(up_sell)
     down_buy_length = len(down_buy)
     down_sell_length = len(down_sell)
+    up_buy_sig = [0] * up_buy_length
+    up_sell_sig = [0] * up_buy_length
+    down_buy_sig = [0] * down_buy_length
+    down_sell_sig = [0] * down_sell_length
     wealth_old = capital_old + price_new * stock_mount_old
     wealths = []
     # 初始化判断标记
@@ -169,7 +178,6 @@ def strategy_turtle(datas, win=10, up_sell=[0.5], down_sell=[-0.1], up_buy=[0.1,
         if up_buy_index != -1:
             # 上向 期上 买入
             pass
-            price_new / price_in_anchor - 1
         elif up_sell_index != -1:
             # 上向 期下 买出
             pass
@@ -179,7 +187,6 @@ def strategy_turtle(datas, win=10, up_sell=[0.5], down_sell=[-0.1], up_buy=[0.1,
         elif down_sell_index != -1:
             # 下向 期下 买出
             pass
-
         else:
             # 跳过
             continue
