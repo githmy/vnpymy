@@ -9,6 +9,26 @@ from collections import deque
 import time
 
 
+class BarStrategy(object):
+    def __init__(self, cap_init, win=10, mount_init=0.0):
+        self.cap_old = cap_init
+        self.mount_old = mount_init
+        self.cap_new = cap_init
+        self.mount_new = mount_init
+        self.dq = deque(maxlen=win)
+
+    def update_info(self, newdata, olddata,mount_old):
+        self.price_new = newdata[0]
+        self.price_old = olddata[0]
+        return self.mount_new
+
+    def do_strategy(self):
+        return
+
+    def up_in_move(self):
+        pass
+
+
 def levy_flight(n, m, beta):
     """
     This function implements Levy's flight. 近似公式
@@ -97,6 +117,7 @@ def strategy_turtle(datas, win=10, up_sell=[0.5], down_sell=[-0.1], up_buy=[0.1,
     # todo: 待做1
     def yield_turle_sig(dq, up_sell=[0.5], down_sell=[-0.1], up_buy=[0.1, 0.2], down_buy=[-0.5]):
         maxdq = max(dq[:-1])
+        # wealth_new = capital_old + price_new * stock_mount_old
         if dq[-1] > maxdq and up_buy_index == -1:
             up_buy_index = 0
             price_in_anchor = maxdq
@@ -127,7 +148,7 @@ def strategy_turtle(datas, win=10, up_sell=[0.5], down_sell=[-0.1], up_buy=[0.1,
                 for idub, upbuy in enumerate(up_buy):
                     if float_in_ratio > upbuy and idub > up_buy_index:
                         up_buy_index = idub
-                stock_mount_keep = (1 + up_buy_index) / up_buy_length / dq[-1]
+                stock_mount_keep = wealth_new * (1 + up_buy_index) / up_buy_length / dq[-1]
                 if stock_mount_keep > stock_mount_old:
                     capital_new -= (stock_mount_keep - stock_mount_old) * dq[-1]
                     stock_mount_new = stock_mount_keep
