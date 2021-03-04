@@ -10,23 +10,122 @@ import time
 
 
 class BarStrategy(object):
-    def __init__(self, cap_init, win=10, mount_init=0.0):
-        self.cap_old = cap_init
-        self.mount_old = mount_init
-        self.cap_new = cap_init
+    # todo: 待做1
+    def __init__(self, cap_init, mount_init=0.0, win=10,
+                 up_sell=[0.5], down_sell=[-0.1],
+                 up_buy=[0.1, 0.2], down_buy=[-0.5]):
+        self.capital_old = cap_init
+        self.capital_new = cap_init
         self.mount_new = mount_init
-        self.dq = deque(maxlen=win)
+        self.mount_old = mount_init
+        self.wealth_new = cap_init
+        self.wealth_old = cap_init
+        self.up_sell = up_sell
+        self.down_sell = down_sell
+        self.up_buy = up_buy
+        self.down_buy = down_buy
+        self.up_sell_length = len(self.up_sell)
+        self.down_sell_length = len(self.down_sell)
+        self.up_buy_length = len(self.up_buy)
+        self.down_buy_length = len(self.down_buy)
+        self.win = win
+        self.dq = deque(maxlen=self.win)
+        self.price_out_anchor = None
+        self.price_in_anchor = None
+        self.olddata = []
+        self.newdata = []
+        self.up_sell_index = -1
+        self.down_sell_index = -1
+        self.up_buy_index = -1
+        self.down_buy_index = -1
+        self.float_in_ratio = 0.0
+        self.float_out_ratio = 0.0
 
-    def update_info(self, newdata, olddata,mount_old):
-        self.price_new = newdata[0]
-        self.price_old = olddata[0]
-        return self.mount_new
+    def update_info(self, newdata):
+        # 算老值
+        if newdata[0] is None:
+            return True
+        self.olddata = self.newdata
+        self.capital_old = self.capital_new
+        self.mount_old = self.mount_new
+        self.wealth_old = self.capital_old + self.dq[-1] * self.mount_old
+        self.dq.append(newdata[0])
+        if len(self.dq) < self.win:
+            return True
+        # 算新标记
+        maxdq = max(self.dq[:-1])
+        if self.price_in_anchor is None:
+            if self.dq[-1] > maxdq:
+                self.price_in_anchor = maxdq
+                self.float_in_ratio = self.dq[-1] / self.price_in_anchor - 1
+                self.price_out_anchor = self.dq[-1]
+                self.float_out_ratio = 0.0
+            # 有了anchor未必达标最小阈值
+            # 上向 期上 买入
+            for idub, upbuy in enumerate(self.up_buy):
+                if self.float_in_ratio > upbuy and idub > self.up_buy_index:
+                    self.up_buy_index = idub
+        if self.price_in_anchor is not None:
+            if self.price_out_anchor < self.dq[-1]:
+                self.price_out_anchor = self.dq[-1]
+            self.float_out_ratio = self.dq[-1] / self.price_out_anchor - 1
+            # 上向 期下 卖出
+            for idus, upsell in enumerate(self.up_sell):
+                if self.float_in_ratio > upsell and idus > self.up_sell_index:
+                    self.up_sell_index = idus
+        # 算新值
+        self.wealth_new = self.capital_old + self.dq[-1] * self.mount_old
+        self.mount_new = (self.wealth_old - self.capital_new) / self.dq[-1]
+        self.newdata = newdata
+        # self.capital_new = cap_init
+        # self.mount_new = mount_init
 
     def do_strategy(self):
-        return
-
-    def up_in_move(self):
-        pass
+        if self.up_buy_index != -1:
+            if self.float_in_ratio > self.up_buy[up_buy_index] and self.float_in_ratio > self.up_sell[0]:
+                # 获利卖
+                # 上向 期下 卖出
+                for idus, upsell in enumerate(self.up_sell):
+                    if self.float_in_ratio > upsell and idus > up_sell_index:
+                        up_sell_index = idus
+                # 保持资金百分比
+                cap_keep = self.wealth_new * (up_sell_index + 1) / self.up_sell_length
+                if cap_keep > self.capital_old:
+                    self.mount_new -= (cap_keep - self.capital_old) / self.dq[-1]
+                    self.capital_new = cap_keep
+                else:
+                    self.mount_new = self.mount_old
+                    self.capital_new = self.capital_old
+            elif self.float_in_ratio > self.up_buy[up_buy_index] and self.float_in_ratio < self.up_sell[0]:
+                # 加仓位
+                # 上向 期上 买入
+                for idub, upbuy in enumerate(self.up_buy):
+                    if self.float_in_ratio > upbuy and idub > up_buy_index:
+                        up_buy_index = idub
+                stock_mount_keep = self.wealth_new * (1 + up_buy_index) / self.up_buy_length / self.dq[-1]
+                if stock_mount_keep > self.mount_old:
+                    self.capital_new -= (stock_mount_keep - self.mount_old) * self.dq[-1]
+                    self.mount_new = stock_mount_keep
+                else:
+                    self.capital_new = self.capital_old
+                    self.mount_new = self.mount_old
+                up_buy_sig[up_buy_index] = 1
+            elif float_out_ratio < self.down_sell[down_sell_index]:
+                # 止损
+                # 下向 期下 卖出
+                for idds, downsell in enumerate(self.down_sell):
+                    if self.float_in_ratio > downsell and idds > down_sell_index:
+                        down_sell_index = idds
+                # 保持资金百分比
+                cap_keep = self.wealth_new * (down_sell_index + 1) / self.down_sell_length
+                if cap_keep > self.capital_old:
+                    self.mount_new -= (cap_keep - self.capital_old) / self.dq[-1]
+                    self.capital_new = cap_keep
+                else:
+                    self.mount_new = self.mount_old
+                    self.capital_new = self.capital_old
+            else:
+                pass
 
 
 def levy_flight(n, m, beta):
@@ -113,131 +212,26 @@ def strategy_keep50(datas, keep_cap=0.5, oper_interval=1, plotsig=False):
 
 def strategy_turtle(datas, win=10, up_sell=[0.5], down_sell=[-0.1], up_buy=[0.1, 0.2], down_buy=[-0.5], plotsig=False):
     """根据曲线生成策略参数: turtle 加减仓策略"""
-
-    # todo: 待做1
-    def yield_turle_sig(dq, up_sell=[0.5], down_sell=[-0.1], up_buy=[0.1, 0.2], down_buy=[-0.5]):
-        maxdq = max(dq[:-1])
-        # wealth_new = capital_old + price_new * stock_mount_old
-        if dq[-1] > maxdq and up_buy_index == -1:
-            up_buy_index = 0
-            price_in_anchor = maxdq
-            price_out_anchor = dq[-1]
-        if up_buy_index != -1:
-            if price_out_anchor < dq[-1]:
-                price_out_anchor = dq[-1]
-            float_in_ratio = dq[-1] / price_in_anchor - 1
-            float_out_ratio = dq[-1] / price_out_anchor - 1
-            if float_in_ratio > up_buy[up_buy_index] and float_in_ratio > up_sell[0]:
-                # 获利卖
-                # 上向 期下 卖出
-                for idus, upsell in enumerate(up_sell):
-                    if float_in_ratio > upsell and idus > up_sell_index:
-                        up_sell_index = idus
-                # 保持资金百分比
-                cap_keep = wealth_new * (up_sell_index + 1) / up_sell_length
-                if cap_keep > capital_old:
-                    stock_mount_new -= (cap_keep - capital_old) / dq[-1]
-                    capital_new = cap_keep
-                else:
-                    stock_mount_new = stock_mount_old
-                    capital_new = capital_old
-                yield None
-            elif float_in_ratio > up_buy[up_buy_index] and float_in_ratio < up_sell[0]:
-                # 加仓位
-                # 上向 期上 买入
-                for idub, upbuy in enumerate(up_buy):
-                    if float_in_ratio > upbuy and idub > up_buy_index:
-                        up_buy_index = idub
-                stock_mount_keep = wealth_new * (1 + up_buy_index) / up_buy_length / dq[-1]
-                if stock_mount_keep > stock_mount_old:
-                    capital_new -= (stock_mount_keep - stock_mount_old) * dq[-1]
-                    stock_mount_new = stock_mount_keep
-                else:
-                    capital_new = capital_old
-                    stock_mount_new = stock_mount_old
-                up_buy_sig[up_buy_index] = 1
-                yield None
-            elif float_out_ratio < down_sell[down_sell_index]:
-                # 止损
-                # 下向 期下 卖出
-                for idds, downsell in enumerate(down_sell):
-                    if float_in_ratio > downsell and idds > down_sell_index:
-                        down_sell_index = idds
-                # 保持资金百分比
-                cap_keep = wealth_new * (down_sell_index + 1) / down_sell_length
-                if cap_keep > capital_old:
-                    stock_mount_new -= (cap_keep - capital_old) / dq[-1]
-                    capital_new = cap_keep
-                else:
-                    stock_mount_new = stock_mount_old
-                    capital_new = capital_old
-                yield None
-            else:
-                pass
-        yield None
-
     # 初始化当前状态
     fee_static = 0.0
     fee_ratio = 0.0
     # fee_static = 5
     # fee_ratio = 2e-4
     capital_init = 1e4
-    capital_old = capital_init
-    stock_mount_old = 0.0
-    price_old = 0.0
-    price_new = 0.0
     price_in_anchor = -1.0
-    up_buy_length = len(up_buy)
-    up_sell_length = len(up_sell)
-    down_buy_length = len(down_buy)
-    down_sell_length = len(down_sell)
-    up_buy_sig = [0] * up_buy_length
-    up_sell_sig = [0] * up_buy_length
-    down_buy_sig = [0] * down_buy_length
-    down_sell_sig = [0] * down_sell_length
-    wealth_old = capital_old + price_new * stock_mount_old
     wealths = []
-    # 初始化判断标记
-    dq = deque(maxlen=win)
-    up_sell_index, down_sell_index, up_buy_index, down_buy_index = -1, -1, -1, -1
+    # 策略初始化
+    bs = BarStrategy(capital_init, mount_init=0.0, win=win,
+                     up_sell=up_sell, down_sell=down_sell,
+                     up_buy=up_buy, down_buy=down_buy)
     for id1, price_new in enumerate(datas):
-        dq.append([price_new])
-        if len(dq) < win or price_new is None:
+        pass_sig = bs.update_info([price_new])
+        if pass_sig:
             continue
-        up_sell_index, down_sell_index, up_buy_index, down_buy_index \
-            = yield_turle_sig(dq, up_sell, down_sell, up_buy, down_buy)
-        if price_in_anchor:
-            up_buy_ratio = capital_old / up_buy_length
-            down_sell_ratio = capital_old / down_sell_length
-            up_buy_ratio = stock_mount_old / up_buy_length
-            down_sell_ratio = stock_mount_old / down_sell_length
-        wealth_old = capital_old + price_old * stock_mount_old
-        wealth_new = capital_old + price_new * stock_mount_old
-        stock_mount_new = (wealth_old - capital_new) / price_new
-        # 调仓触发条件 海龟
-        if up_buy_index != -1:
-            # 上向 期上 买入
-            pass
-        elif up_sell_index != -1:
-            # 上向 期下 买出
-            pass
-        elif down_buy_index != -1:
-            # 下向 期上 买入
-            pass
-        elif down_sell_index != -1:
-            # 下向 期下 买出
-            pass
-        else:
-            # 跳过
-            continue
-
-        wealth_old = wealth_new
-        capital_old = capital_new
-        price_old = price_new
-        stock_mount_old = stock_mount_new
-        wealths.append(wealth_old)
+        bs.do_strategy()
+        wealths.append(bs.wealth_new)
     tlen = len(datas)
-    ratio_all = wealth_old / capital_init
+    ratio_all = bs.wealth_new / capital_init
     ratio_day = pow(ratio_all, 1.0 / tlen)
     if plotsig:
         x = list(range(tlen))
