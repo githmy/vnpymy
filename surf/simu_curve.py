@@ -42,6 +42,10 @@ class BarStrategy(object):
         self.old_down_sell_index = -1
         self.old_up_buy_index = -1
         self.old_down_buy_index = -1
+        self.active_up_sell_index = False
+        self.active_down_sell_index = False
+        self.active_up_buy_index = False
+        self.active_down_buy_index = False
         self.float_in_ratio = 0.0
         self.float_out_ratio = 0.0
         self.turtle_sig = False
@@ -54,6 +58,7 @@ class BarStrategy(object):
                 if firstsig:
                     self.old_up_buy_index = self.up_buy_index
                     firstsig = False
+                    self.active_up_buy_index = True
                 upbuy_index = idub
         return upbuy_index
 
@@ -66,8 +71,8 @@ class BarStrategy(object):
                 if firstsig:
                     self.old_up_sell_index = self.up_sell_index
                     firstsig = False
+                    self.active_up_sell_index = True
                 upsell_index = idub
-                self.up_buy_index = -1
         return upsell_index
 
     def _get_downsell_index(self, downsell_index):
@@ -78,6 +83,7 @@ class BarStrategy(object):
                 if firstsig:
                     self.old_down_sell_index = self.down_sell_index
                     firstsig = False
+                    self.active_down_sell_index = True
                 downsell_index = idds
         return downsell_index
 
@@ -89,6 +95,7 @@ class BarStrategy(object):
                 if firstsig:
                     self.old_down_buy_index = self.down_buy_index
                     firstsig = False
+                    self.active_down_buy_index = True
                 downbuy_index = iddb
         return downbuy_index
 
@@ -97,11 +104,12 @@ class BarStrategy(object):
         if self.down_sell_index != -1 and self.old_down_sell_index == -1:
             # 重置
             self.price_out_anchor = max(self.dq)
-        if self.up_buy_index < self.old_up_buy_index:
+        if self.price_in_anchor is not None and self.up_buy_index != -1 and self.old_up_buy_index == -1:
             self.price_in_anchor = min(self.dq)
-        if self.price_out_anchor < self.dq[-1]:
-            self.price_out_anchor = self.dq[-1]
-        # 2. 策略只根据索引的状态 关闭
+        # 2. ratio 获取
+        self.float_in_ratio = self.dq[-1] / self.price_in_anchor - 1
+        self.float_out_ratio = self.dq[-1] / self.price_out_anchor - 1
+        # 3. 策略只根据索引的状态 关闭
         if sum(self.up_buy_index, self.up_sell_index, self.down_buy_index, self.down_sell_index) == -4:
             self.turtle_sig = False
         if self.price_in_anchor is None or self.price_out_anchor is None:
@@ -129,7 +137,6 @@ class BarStrategy(object):
         if self.turtle_sig:
             # 更新 上下锚点
             self._update_anchor()
-            self.float_out_ratio = self.dq[-1] / self.price_out_anchor - 1
             # 有了anchor未必达标最小阈值
             # 加仓, 上向 期上 买入
             self.up_buy_index = self._get_upbuy_index(self.up_buy_index)
@@ -137,8 +144,8 @@ class BarStrategy(object):
             self.up_sell_index = self._get_upsell_index(self.up_sell_index)
             # 止损, 下向 期下 卖出
             self.down_sell_index = self._get_downsell_index(self.down_sell_index)
-        # 3. 策略更新
-        self.do_strategy()
+            # 3. 策略更新
+            self.do_strategy()
         # 4. 算总额
         self.wealth_new = self.capital_old + self.dq[-1] * self.mount_old
         self.mount_new = (self.wealth_old - self.capital_new) / self.dq[-1]
@@ -147,39 +154,39 @@ class BarStrategy(object):
         # self.mount_new = mount_init
 
     def do_strategy(self):
-        if self.up_buy_index != -1:
-            if self.float_in_ratio > self.up_buy[up_buy_index] and self.float_in_ratio > self.up_sell[0]:
-                # 获利卖
-                # 保持资金百分比
-                cap_keep = self.wealth_new * (up_sell_index + 1) / self.up_sell_length
-                if cap_keep > self.capital_old:
-                    self.mount_new -= (cap_keep - self.capital_old) / self.dq[-1]
-                    self.capital_new = cap_keep
-                else:
-                    self.mount_new = self.mount_old
-                    self.capital_new = self.capital_old
-            elif self.float_in_ratio > self.up_buy[up_buy_index] and self.float_in_ratio < self.up_sell[0]:
-                # 加仓位
-                stock_mount_keep = self.wealth_new * (1 + up_buy_index) / self.up_buy_length / self.dq[-1]
-                if stock_mount_keep > self.mount_old:
-                    self.capital_new -= (stock_mount_keep - self.mount_old) * self.dq[-1]
-                    self.mount_new = stock_mount_keep
-                else:
-                    self.capital_new = self.capital_old
-                    self.mount_new = self.mount_old
-                up_buy_sig[up_buy_index] = 1
-            elif float_out_ratio < self.down_sell[down_sell_index]:
-                # 止损
-                # 保持资金百分比
-                cap_keep = self.wealth_new * (down_sell_index + 1) / self.down_sell_length
-                if cap_keep > self.capital_old:
-                    self.mount_new -= (cap_keep - self.capital_old) / self.dq[-1]
-                    self.capital_new = cap_keep
-                else:
-                    self.mount_new = self.mount_old
-                    self.capital_new = self.capital_old
+        # todo: next
+        if self.float_in_ratio > self.up_buy[up_buy_index] and self.float_in_ratio > self.up_sell[0]:
+            # 获利卖
+            # 保持资金百分比
+            cap_keep = self.wealth_new * (up_sell_index + 1) / self.up_sell_length
+            if cap_keep > self.capital_old:
+                self.mount_new -= (cap_keep - self.capital_old) / self.dq[-1]
+                self.capital_new = cap_keep
             else:
-                pass
+                self.mount_new = self.mount_old
+                self.capital_new = self.capital_old
+        elif self.float_in_ratio > self.up_buy[up_buy_index] and self.float_in_ratio < self.up_sell[0]:
+            # 加仓位
+            stock_mount_keep = self.wealth_new * (1 + up_buy_index) / self.up_buy_length / self.dq[-1]
+            if stock_mount_keep > self.mount_old:
+                self.capital_new -= (stock_mount_keep - self.mount_old) * self.dq[-1]
+                self.mount_new = stock_mount_keep
+            else:
+                self.capital_new = self.capital_old
+                self.mount_new = self.mount_old
+            up_buy_sig[up_buy_index] = 1
+        elif float_out_ratio < self.down_sell[down_sell_index]:
+            # 止损
+            # 保持资金百分比
+            cap_keep = self.wealth_new * (down_sell_index + 1) / self.down_sell_length
+            if cap_keep > self.capital_old:
+                self.mount_new -= (cap_keep - self.capital_old) / self.dq[-1]
+                self.capital_new = cap_keep
+            else:
+                self.mount_new = self.mount_old
+                self.capital_new = self.capital_old
+        else:
+            pass
 
 
 def levy_flight(n, m, beta):
