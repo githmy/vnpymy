@@ -110,7 +110,7 @@ class BarStrategy(object):
         self.float_in_ratio = self.dq[-1] / self.price_in_anchor - 1
         self.float_out_ratio = self.dq[-1] / self.price_out_anchor - 1
         # 3. 策略只根据索引的状态 关闭
-        if sum(self.up_buy_index, self.up_sell_index, self.down_buy_index, self.down_sell_index) == -4:
+        if sum([self.up_buy_index, self.up_sell_index, self.down_buy_index, self.down_sell_index]) == -4:
             self.turtle_sig = False
         if self.price_in_anchor is None or self.price_out_anchor is None:
             self.turtle_sig = False
@@ -122,12 +122,15 @@ class BarStrategy(object):
         self.olddata = self.newdata
         self.capital_old = self.capital_new
         self.mount_old = self.mount_new
-        self.wealth_old = self.capital_old + self.dq[-1] * self.mount_old
+        if len(self.dq) == 0:
+            self.wealth_old = self.capital_old
+        else:
+            self.wealth_old = self.capital_old + self.dq[-1] * self.mount_old
         self.dq.append(newdata[0])
         if len(self.dq) < self.win:
             return True
         # 2. 算新标记
-        maxdq = max(self.dq[:-1])
+        maxdq = max(list(self.dq)[:-1])
         if self.price_in_anchor is None and self.dq[-1] > maxdq:
             self.turtle_sig = True
             self.price_in_anchor = maxdq
@@ -154,37 +157,35 @@ class BarStrategy(object):
         # self.mount_new = mount_init
 
     def do_strategy(self):
-        # todo: next
-        if self.float_in_ratio > self.up_buy[up_buy_index] and self.float_in_ratio > self.up_sell[0]:
-            # 获利卖
+        if self.down_sell_index > -1:
+            # 止损最高优先级
             # 保持资金百分比
-            cap_keep = self.wealth_new * (up_sell_index + 1) / self.up_sell_length
+            cap_keep = self.wealth_new * (self.down_sell_index + 1) / self.down_sell_length
             if cap_keep > self.capital_old:
                 self.mount_new -= (cap_keep - self.capital_old) / self.dq[-1]
                 self.capital_new = cap_keep
             else:
                 self.mount_new = self.mount_old
                 self.capital_new = self.capital_old
-        elif self.float_in_ratio > self.up_buy[up_buy_index] and self.float_in_ratio < self.up_sell[0]:
-            # 加仓位
-            stock_mount_keep = self.wealth_new * (1 + up_buy_index) / self.up_buy_length / self.dq[-1]
+        elif self.up_sell_index > -1:
+            # 预防次等优先级, 获利卖
+            # 保持资金百分比
+            cap_keep = self.wealth_new * (self.up_sell_index + 1) / self.up_sell_length
+            if cap_keep > self.capital_old:
+                self.mount_new -= (cap_keep - self.capital_old) / self.dq[-1]
+                self.capital_new = cap_keep
+            else:
+                self.mount_new = self.mount_old
+                self.capital_new = self.capital_old
+        elif self.up_buy_index > -1:
+            # 交易最低优先级, 加仓位
+            stock_mount_keep = self.wealth_new * (1 + self.up_buy_index) / self.up_buy_length / self.dq[-1]
             if stock_mount_keep > self.mount_old:
                 self.capital_new -= (stock_mount_keep - self.mount_old) * self.dq[-1]
                 self.mount_new = stock_mount_keep
             else:
                 self.capital_new = self.capital_old
                 self.mount_new = self.mount_old
-            up_buy_sig[up_buy_index] = 1
-        elif float_out_ratio < self.down_sell[down_sell_index]:
-            # 止损
-            # 保持资金百分比
-            cap_keep = self.wealth_new * (down_sell_index + 1) / self.down_sell_length
-            if cap_keep > self.capital_old:
-                self.mount_new -= (cap_keep - self.capital_old) / self.dq[-1]
-                self.capital_new = cap_keep
-            else:
-                self.mount_new = self.mount_old
-                self.capital_new = self.capital_old
         else:
             pass
 
@@ -281,15 +282,18 @@ def strategy_turtle(datas, win=10, up_sell=[0.5], down_sell=[-0.1], up_buy=[0.1,
     capital_init = 1e4
     price_in_anchor = -1.0
     wealths = []
+    keepcap = []
     # 策略初始化
     bs = BarStrategy(capital_init, mount_init=0.0, win=win,
                      up_sell=up_sell, down_sell=down_sell,
                      up_buy=up_buy, down_buy=down_buy)
     for id1, price_new in enumerate(datas):
         pass_sig = bs.update_info([price_new])
+        print(pass_sig)
         if pass_sig:
             continue
         wealths.append(bs.wealth_new)
+        keepcap.append(bs.capital_new / bs.wealth_new)
     tlen = len(datas)
     ratio_all = bs.wealth_new / capital_init
     ratio_day = pow(ratio_all, 1.0 / tlen)
@@ -330,26 +334,14 @@ def best_capital(datas, oper_intervals=[1], plotsig=False):
 
 def best_turtle_gene(datas, win=10, up_sell=[0.5], down_sell=[-0.1], up_buy=[0.1, 0.2], down_buy=[-0.5], plotsig=False):
     # 不同操作周期的天化，年化。交易成本。
-    best_profits = {}
-    final_profit = []
-    if 1:
-        for i1 in range(1, 50):
-            stt = time.time()
-            # 2. 海龟
-            ratio_day = strategy_turtle(datas, win=win, up_sell=up_sell, down_sell=down_sell, up_buy=up_buy,
-                                        down_buy=down_buy, plotsig=False)
-            final_profit.append([keep_cap, ratio_day])
-            print(" ", (time.time() - stt) / 60)
-        sort_profit = sorted(final_profit, key=lambda x: x[-1])
-        best_profits[oper_interval] = sort_profit[-1][-1]
-    if plotsig:
-        pdobj = pd.DataFrame(best_profits.items())
-        print(pdobj)
-        pdobj.set_index(0, inplace=True)
-        pdobj[1].plot()
-        plt.show()
-    sort_inter = sorted(best_profits.items(), key=lambda x: x[-1])
-    return sort_inter[-1]
+    final_ratio = None
+    stt = time.time()
+    # 2. 海龟
+    ratio_day = strategy_turtle(datas, win=win, up_sell=up_sell, down_sell=down_sell, up_buy=up_buy,
+                                down_buy=down_buy, plotsig=False)
+    final_ratio = ratio_day
+    print(" ", (time.time() - stt) / 60)
+    return final_ratio
 
 
 def get_kde_para(datas, plotsig=False):
@@ -401,10 +393,10 @@ def main():
     # n, m, beta = 10, 1, 1.8
     n, m, beta = 10000, 1, 1.8
     datas = generate_curve(n, m, beta, scale=0.01, plotsig=False)
-    print(datas[-1])
-    sort_inter = best_turtle_gene(datas, win=10, up_sell=[0.5], down_sell=[-0.1], up_buy=[0.1, 0.2], down_buy=[-0.5],
-                                  plotsig=False)
-    print(sort_inter)
+    print(datas, datas[-1])
+    final_ratio = best_turtle_gene(datas, win=10, up_sell=[0.5], down_sell=[-0.1], up_buy=[0.1, 0.2], down_buy=[-0.5],
+                                   plotsig=False)
+    print(final_ratio)
     exit()
     # 1. 历史回测，压力模拟。
     # 2. 资金净流量模型，m2延迟，GDP，国际利率差
