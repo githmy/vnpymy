@@ -42,20 +42,42 @@ def 保存图片():
     # Image.fromarray(image).save('WordCloud.png')
 
 
-def plot_stock_sig(datas, datal, sigs):
-    "datas标准数据，sigs(up_buy,up_sell,down_sell,down_buy)"
+def plot_stock_sig(pddatas, datals, sigs):
+    "datas标准数据，sigs(trade_sig,up_buy,up_sell,down_buy,down_sell)"
     # https://blog.csdn.net/weixin_42524945/article/details/112187912
+    # https://blog.csdn.net/xingbuxing_py/article/details/109379080
+    # 1. 添加额外线
+    # add_plot = mpf.make_addplot(datal[['High', 'MidValue', 'Low']])
+    # 2. 添加额外点
+    tadd_plot = [mpf.make_addplot(datal) for datal in datals]
+    add_plot = [
+        mpf.make_addplot(sigs["sig"], scatter=True, markersize=100, marker='o', color='y'),
+        mpf.make_addplot(sigs["ub"], scatter=True, markersize=100, marker='^', color='r'),
+        mpf.make_addplot(sigs["us"], scatter=True, markersize=100, marker='v', color='g'),
+        mpf.make_addplot(sigs["db"], scatter=True, markersize=100, marker='^', color='#ff8080'),
+        mpf.make_addplot(sigs["ds"], scatter=True, markersize=100, marker='v', color='#80ff80'),
+    ]
+    mpf.plot(pddatas, type='candle', addplot=tadd_plot + add_plot)
+
+
+def plot_stock_sig_back(pddatas, datal, sigs):
+    "datas标准数据，sigs(trade_sig,up_buy,up_sell,down_buy,down_sell)"
+    # https://blog.csdn.net/weixin_42524945/article/details/112187912
+    # https://blog.csdn.net/xingbuxing_py/article/details/109379080
     # 1. 添加额外线
     add_plot = mpf.make_addplot(datal[['High', 'MidValue', 'Low']])
-    mpf.plot(datas, type='candle', addplot=add_plot)
+    mpf.plot(pddatas, type='candle', addplot=add_plot)
     # 2. 添加额外点
     a_list = datal.High.tolist()
     b_list = datal.Low.tolist()
+    c_list = datal.Low.tolist()
     add_plot = [
-        mpf.make_addplot(a_list, scatter=True, markersize=100, marker='v', color='y'),
+        mpf.make_addplot(datal['MidValue']),
+        mpf.make_addplot(a_list, scatter=True, markersize=100, marker='v', color='g'),
         mpf.make_addplot(b_list, scatter=True, markersize=100, marker='^', color='r'),
-        mpf.make_addplot(datal['MidValue'])]
-    mpf.plot(datas, type='candle', addplot=add_plot)
+        mpf.make_addplot(c_list, scatter=True, markersize=100, marker='o', color='y'),
+    ]
+    mpf.plot(pddatas, type='candle', addplot=add_plot)
 
 
 def pandas_candlestick_ohlc(stock_data, otherseries=None):

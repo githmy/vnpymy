@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import pandas as pd
 import scipy.special as sc_special
@@ -7,6 +8,9 @@ from sklearn.neighbors import KernelDensity
 from sklearn.model_selection import GridSearchCV
 from collections import deque
 import time
+import codecs
+
+pd.set_option('display.max_columns', None)
 
 
 class BarStrategy(object):
@@ -38,10 +42,12 @@ class BarStrategy(object):
         self.down_sell_index = -1
         self.up_buy_index = -1
         self.down_buy_index = -1
+        # 上一个不同的index
         self.old_up_sell_index = -1
         self.old_down_sell_index = -1
         self.old_up_buy_index = -1
         self.old_down_buy_index = -1
+        # 当天是否更新了索引
         self.active_up_sell_index = False
         self.active_down_sell_index = False
         self.active_up_buy_index = False
@@ -53,6 +59,7 @@ class BarStrategy(object):
     def _get_upbuy_index(self, upbuy_index):
         # 更新才赋旧值
         firstsig = True
+        self.active_up_buy_index = False
         for idub, upbuy in enumerate(self.up_buy):
             if self.float_in_ratio > upbuy and idub > upbuy_index:
                 if firstsig:
@@ -66,6 +73,7 @@ class BarStrategy(object):
         # 上卖 优先覆盖 上买
         # 更新才赋旧值
         firstsig = True
+        self.active_up_sell_index = False
         for idub, upbuy in enumerate(self.up_buy):
             if self.float_in_ratio > upbuy and idub > upsell_index:
                 if firstsig:
@@ -78,6 +86,7 @@ class BarStrategy(object):
     def _get_downsell_index(self, downsell_index):
         # 更新才赋旧值
         firstsig = True
+        self.active_down_sell_index = False
         for idds, downsell in enumerate(self.down_sell):
             if self.float_out_ratio < downsell and idds > downsell_index:
                 if firstsig:
@@ -90,6 +99,7 @@ class BarStrategy(object):
     def _get_downbuy_index(self, downbuy_index):
         # 更新才赋旧值
         firstsig = True
+        self.active_down_buy_index = False
         for iddb, downbuy in enumerate(self.down_buy):
             if self.float_out_ratio < downbuy and iddb > downbuy_index:
                 if firstsig:
@@ -110,8 +120,10 @@ class BarStrategy(object):
         self.float_in_ratio = self.dq[-1] / self.price_in_anchor - 1
         self.float_out_ratio = self.dq[-1] / self.price_out_anchor - 1
         # 3. 策略只根据索引的状态 关闭
+        print(sum([self.up_buy_index, self.up_sell_index, self.down_buy_index, self.down_sell_index]))
         if sum([self.up_buy_index, self.up_sell_index, self.down_buy_index, self.down_sell_index]) == -4:
             self.turtle_sig = False
+        print(self.price_in_anchor, self.price_out_anchor)
         if self.price_in_anchor is None or self.price_out_anchor is None:
             self.turtle_sig = False
 
@@ -138,17 +150,23 @@ class BarStrategy(object):
             self.price_out_anchor = self.dq[-1]
             self.float_out_ratio = 0.0
         if self.turtle_sig:
+            print(self.turtle_sig, 91)
             # 更新 上下锚点
             self._update_anchor()
+            print(self.turtle_sig, 92)
             # 有了anchor未必达标最小阈值
             # 加仓, 上向 期上 买入
             self.up_buy_index = self._get_upbuy_index(self.up_buy_index)
+            print(self.turtle_sig, 93)
             # 止赢, 上向 期下 卖出
             self.up_sell_index = self._get_upsell_index(self.up_sell_index)
+            print(self.turtle_sig, 94)
             # 止损, 下向 期下 卖出
             self.down_sell_index = self._get_downsell_index(self.down_sell_index)
+            print(self.turtle_sig, 95)
             # 3. 策略更新
             self.do_strategy()
+            print(self.turtle_sig, 99)
         # 4. 算总额
         self.wealth_new = self.capital_old + self.dq[-1] * self.mount_old
         self.mount_new = (self.wealth_old - self.capital_new) / self.dq[-1]
@@ -287,13 +305,37 @@ def strategy_turtle(datas, win=10, up_sell=[0.5], down_sell=[-0.1], up_buy=[0.1,
     bs = BarStrategy(capital_init, mount_init=0.0, win=win,
                      up_sell=up_sell, down_sell=down_sell,
                      up_buy=up_buy, down_buy=down_buy)
+    tmpfile1 = os.path.join(os.path.expanduser('~'), "tmp1.txt")
+    outhand1 = codecs.open(tmpfile1, "w", "utf8")
+    tmpfile2 = os.path.join(os.path.expanduser('~'), "tmp2.txt")
+    outhand2 = codecs.open(tmpfile2, "w", "utf8")
+    tmpfile3 = os.path.join(os.path.expanduser('~'), "tmp3.txt")
+    outhand3 = codecs.open(tmpfile3, "w", "utf8")
+    tmpfile4 = os.path.join(os.path.expanduser('~'), "tmp4.txt")
+    outhand4 = codecs.open(tmpfile4, "w", "utf8")
+    tmpfile5 = os.path.join(os.path.expanduser('~'), "tmp5.txt")
+    outhand5 = codecs.open(tmpfile5, "w", "utf8")
     for id1, price_new in enumerate(datas):
+        # 关键更新
         pass_sig = bs.update_info([price_new])
-        print(pass_sig)
-        if pass_sig:
-            continue
-        wealths.append(bs.wealth_new)
-        keepcap.append(bs.capital_new / bs.wealth_new)
+        if not pass_sig:
+            wealths.append(bs.wealth_new)
+            keepcap.append(bs.capital_new / bs.wealth_new)
+        outhand1.write("{}\n".format(bs.dq[-1] if bs.turtle_sig else None))
+        outhand2.write("{}\n".format(bs.dq[-1] if bs.up_buy_index else None))
+        outhand3.write("{}\n".format(bs.dq[-1] if bs.up_sell_index else None))
+        outhand4.write("{}\n".format(bs.dq[-1] if bs.down_buy_index else None))
+        outhand5.write("{}\n".format(bs.dq[-1] if bs.down_sell_index else None))
+        # outhand1.write("{}\n".format(bs.turtle_sig))
+        # outhand2.write("{}\n".format(bs.float_in_ratio))
+        # outhand3.write("{}\n".format(bs.float_out_ratio))
+        # outhand4.write("{}\n".format(bs.price_in_anchor))
+        # outhand5.write("{}\n".format(bs.price_out_anchor))
+    outhand1.close()
+    outhand2.close()
+    outhand3.close()
+    outhand4.close()
+    outhand5.close()
     tlen = len(datas)
     ratio_all = bs.wealth_new / capital_init
     ratio_day = pow(ratio_all, 1.0 / tlen)
@@ -340,8 +382,56 @@ def best_turtle_gene(datas, win=10, up_sell=[0.5], down_sell=[-0.1], up_buy=[0.1
     ratio_day = strategy_turtle(datas, win=win, up_sell=up_sell, down_sell=down_sell, up_buy=up_buy,
                                 down_buy=down_buy, plotsig=False)
     final_ratio = ratio_day
-    print(" ", (time.time() - stt) / 60)
+    print("time:{}min".format((time.time() - stt) / 60))
     return final_ratio
+
+
+def plot_datasig_package(datas):
+    # 查看临时输出
+    # pddata = pd.DataFrame({"Open": datas, "High": datas, "Low": datas, "Close": datas, "volumes": [1] * len(datas)})
+    pddata = pd.DataFrame({"Open": datas, "High": datas, "Low": datas, "Close": datas})
+    pddata["Open"] = pddata["Open"] * 0.95
+    pddata["Close"] = pddata["Close"] * 1
+    pddata["High"] = pddata["High"] * 1.05
+    pddata["Low"] = pddata["Low"] * 0.9
+    orderl_pd = pd.date_range(start="19700101", periods=len(datas), freq='1D')
+    pddata.set_index(orderl_pd, inplace=True)
+    # pddata.rename(index={0: 'indexName1'}, inplace=True)
+    tmpfile1 = os.path.join(os.path.expanduser('~'), "tmp1.txt")
+    with codecs.open(tmpfile1, "r", "utf8") as inhand:
+        incont1 = inhand.readlines()
+    tmpfile2 = os.path.join(os.path.expanduser('~'), "tmp2.txt")
+    with codecs.open(tmpfile2, "r", "utf8") as inhand:
+        incont2 = inhand.readlines()
+    tmpfile3 = os.path.join(os.path.expanduser('~'), "tmp3.txt")
+    with codecs.open(tmpfile3, "r", "utf8") as inhand:
+        incont3 = inhand.readlines()
+    tmpfile4 = os.path.join(os.path.expanduser('~'), "tmp4.txt")
+    with codecs.open(tmpfile4, "r", "utf8") as inhand:
+        incont4 = inhand.readlines()
+    tmpfile5 = os.path.join(os.path.expanduser('~'), "tmp5.txt")
+    with codecs.open(tmpfile5, "r", "utf8") as inhand:
+        incont5 = inhand.readlines()
+    pddata["sig"] = [np.nan if i1.strip() == "None" else datas[id1] for id1, i1 in enumerate(incont1)]
+    pddata["ub"] = [
+        np.nan if np.isnan(pddata["sig"][id1]) or i1.strip() == "None" or float(i1.strip()) < 0 else pddata.iloc[id1, 0]
+        for id1, i1 in enumerate(incont2)]
+    pddata["us"] = [
+        np.nan if np.isnan(pddata["sig"][id1]) or i1.strip() == "None" or float(i1.strip()) < 0 else pddata.iloc[id1, 1]
+        for id1, i1 in enumerate(incont3)]
+    pddata["db"] = [
+        np.nan if np.isnan(pddata["sig"][id1]) or i1.strip() == "None" or float(i1.strip()) < 0 else pddata.iloc[id1, 3]
+        for id1, i1 in enumerate(incont4)]
+    pddata["ds"] = [
+        np.nan if np.isnan(pddata["sig"][id1]) or i1.strip() == "None" or float(i1.strip()) < 0 else pddata.iloc[id1, 2]
+        for id1, i1 in enumerate(incont5)]
+    pddata["sig"][0] = 1
+    pddata["ub"][0] = 1
+    pddata["us"][0] = 1
+    pddata["db"][0] = 1
+    pddata["ds"][0] = 1
+    # print(pddata)
+    plot_stock_sig(pddata, [datas], pddata[["sig", "ub", "us", "db", "ds"]])
 
 
 def get_kde_para(datas, plotsig=False):
@@ -391,12 +481,16 @@ def main():
     np.random.seed(113)
     # n, m, beta = 10000000, 1, 1.8
     # n, m, beta = 10, 1, 1.8
-    n, m, beta = 10000, 1, 1.8
+    n, m, beta = 100, 1, 1.8
     datas = generate_curve(n, m, beta, scale=0.01, plotsig=False)
+    # datas = generate_curve(n, m, beta, scale=0.01, plotsig=True)
     print(datas, datas[-1])
     final_ratio = best_turtle_gene(datas, win=10, up_sell=[0.5], down_sell=[-0.1], up_buy=[0.1, 0.2], down_buy=[-0.5],
                                    plotsig=False)
     print(final_ratio)
+    # 查看临时输出
+    plot_datasig_package(datas)
+    # plot_curve(list(range(len(incont1))), [incont1, incont2, incont3, incont4, incont5],
     exit()
     # 1. 历史回测，压力模拟。
     # 2. 资金净流量模型，m2延迟，GDP，国际利率差
