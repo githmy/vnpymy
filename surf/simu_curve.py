@@ -110,6 +110,7 @@ class BarStrategy(object):
         return downbuy_index
 
     def _update_anchor(self):
+        # 前提是 已经进入策略状态
         # 1. anchor 更新
         if self.down_sell_index != -1 and self.old_down_sell_index == -1:
             # 重置
@@ -119,13 +120,6 @@ class BarStrategy(object):
         # 2. ratio 获取
         self.float_in_ratio = self.dq[-1] / self.price_in_anchor - 1
         self.float_out_ratio = self.dq[-1] / self.price_out_anchor - 1
-        # 3. 策略只根据索引的状态 关闭
-        print(sum([self.up_buy_index, self.up_sell_index, self.down_buy_index, self.down_sell_index]))
-        if sum([self.up_buy_index, self.up_sell_index, self.down_buy_index, self.down_sell_index]) == -4:
-            self.turtle_sig = False
-        print(self.price_in_anchor, self.price_out_anchor)
-        if self.price_in_anchor is None or self.price_out_anchor is None:
-            self.turtle_sig = False
 
     def update_info(self, newdata):
         # 1. 算老值
@@ -144,29 +138,34 @@ class BarStrategy(object):
         # 2. 算新标记
         maxdq = max(list(self.dq)[:-1])
         if self.price_in_anchor is None and self.dq[-1] > maxdq:
-            self.turtle_sig = True
+            # 初始设置，记录策略标记
+            maxdq = max(list(self.dq)[:-1])
             self.price_in_anchor = maxdq
             self.float_in_ratio = self.dq[-1] / self.price_in_anchor - 1
             self.price_out_anchor = self.dq[-1]
             self.float_out_ratio = 0.0
+            self.turtle_sig = True
         if self.turtle_sig:
-            print(self.turtle_sig, 91)
             # 更新 上下锚点
             self._update_anchor()
-            print(self.turtle_sig, 92)
             # 有了anchor未必达标最小阈值
+            print(self.float_in_ratio, self.float_out_ratio)
             # 加仓, 上向 期上 买入
             self.up_buy_index = self._get_upbuy_index(self.up_buy_index)
-            print(self.turtle_sig, 93)
             # 止赢, 上向 期下 卖出
             self.up_sell_index = self._get_upsell_index(self.up_sell_index)
-            print(self.turtle_sig, 94)
             # 止损, 下向 期下 卖出
             self.down_sell_index = self._get_downsell_index(self.down_sell_index)
-            print(self.turtle_sig, 95)
-            # 3. 策略更新
+            # 3. 策略操作更新
             self.do_strategy()
-            print(self.turtle_sig, 99)
+            # 4. 策略标记更新
+            # 3. 策略只根据索引的状态 关闭
+            if self.down_sell_index + 1 == self.down_sell_length or self.up_sell_index + 1 == self.up_sell_length:
+                self.price_in_anchor = None
+                self.price_out_anchor = None
+                self.turtle_sig = False
+            print(self.up_buy_index, self.up_sell_index, self.down_buy_index, self.down_sell_index)
+            print(self.price_in_anchor, self.price_out_anchor, self.turtle_sig, 99)
         # 4. 算总额
         self.wealth_new = self.capital_old + self.dq[-1] * self.mount_old
         self.mount_new = (self.wealth_old - self.capital_new) / self.dq[-1]
@@ -298,7 +297,6 @@ def strategy_turtle(datas, win=10, up_sell=[0.5], down_sell=[-0.1], up_buy=[0.1,
     # fee_static = 5
     # fee_ratio = 2e-4
     capital_init = 1e4
-    price_in_anchor = -1.0
     wealths = []
     keepcap = []
     # 策略初始化
