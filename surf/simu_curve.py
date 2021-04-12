@@ -61,6 +61,7 @@ class BarStrategy(object):
         firstsig = True
         self.active_up_buy_index = False
         for idub, upbuy in enumerate(self.up_buy):
+            # print(33, self.float_in_ratio, upbuy, idub, upbuy_index)
             if self.float_in_ratio > upbuy and idub > upbuy_index:
                 if firstsig:
                     self.old_up_buy_index = self.up_buy_index
@@ -113,10 +114,13 @@ class BarStrategy(object):
         # 前提是 已经进入策略状态
         # 1. anchor 更新
         if self.down_sell_index != -1 and self.old_down_sell_index == -1:
-            # 重置
-            self.price_out_anchor = max(self.dq)
-        if self.price_in_anchor is not None and self.up_buy_index != -1 and self.old_up_buy_index == -1:
-            self.price_in_anchor = min(self.dq)
+            self.price_out_anchor = max(self.dq + [self.price_out_anchor])
+        if self.down_buy_index != -1 and self.old_down_buy_index == -1:
+            self.price_out_anchor = max(self.dq + [self.price_out_anchor])
+        # if self.price_in_anchor is not None and self.up_buy_index != -1 and self.old_up_buy_index == -1:
+        #     self.price_in_anchor = min(self.dq+[self.price_in_anchor])
+        # if self.up_buy_index != -1 and self.old_up_buy_index == -1:
+        #     self.price_in_anchor = min(self.dq+[self.price_in_anchor])
         # 2. ratio 获取
         self.float_in_ratio = self.dq[-1] / self.price_in_anchor - 1
         self.float_out_ratio = self.dq[-1] / self.price_out_anchor - 1
@@ -149,8 +153,8 @@ class BarStrategy(object):
             # 更新 上下锚点
             self._update_anchor()
             # 有了anchor未必达标最小阈值
-            print(self.float_in_ratio, self.float_out_ratio)
             # 加仓, 上向 期上 买入
+            # print(22)
             self.up_buy_index = self._get_upbuy_index(self.up_buy_index)
             # 止赢, 上向 期下 卖出
             self.up_sell_index = self._get_upsell_index(self.up_sell_index)
@@ -165,7 +169,8 @@ class BarStrategy(object):
                 self.price_out_anchor = None
                 self.turtle_sig = False
             print(self.up_buy_index, self.up_sell_index, self.down_buy_index, self.down_sell_index)
-            print(self.price_in_anchor, self.price_out_anchor, self.turtle_sig, 99)
+            print(self.dq[-1], self.price_in_anchor, self.price_out_anchor, self.turtle_sig, 99)
+            print(self.float_in_ratio, self.float_out_ratio)
         # 4. 算总额
         self.wealth_new = self.capital_old + self.dq[-1] * self.mount_old
         self.mount_new = (self.wealth_old - self.capital_new) / self.dq[-1]
@@ -483,7 +488,7 @@ def main():
     datas = generate_curve(n, m, beta, scale=0.01, plotsig=False)
     # datas = generate_curve(n, m, beta, scale=0.01, plotsig=True)
     print(datas, datas[-1])
-    final_ratio = best_turtle_gene(datas, win=10, up_sell=[0.5], down_sell=[-0.1], up_buy=[0.1, 0.2], down_buy=[-0.5],
+    final_ratio = best_turtle_gene(datas, win=10, up_sell=[0.05], down_sell=[-0.01], up_buy=[0.01, 0.02], down_buy=[-0.05],
                                    plotsig=False)
     print(final_ratio)
     # 查看临时输出
