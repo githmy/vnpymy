@@ -14,10 +14,10 @@ pd.set_option('display.max_columns', None)
 
 
 class BarStrategy(object):
-    # todo: 待做1
     def __init__(self, cap_init, mount_init=0.0, win=10,
                  up_sell=[0.5], down_sell=[-0.1],
                  up_buy=[0.1, 0.2], down_buy=[-0.5]):
+        self.capital_init = cap_init
         self.capital_old = cap_init
         self.capital_new = cap_init
         self.mount_new = mount_init
@@ -155,7 +155,7 @@ class BarStrategy(object):
             else:
                 self.down_buy_index = -1
 
-    def _check_reset(self):
+    def update_check_reset(self):
         if self.down_sell_index + 1 == self.down_sell_length or self.up_sell_index + 1 == self.up_sell_length:
             self.price_in_anchor = None
             self.price_out_anchor = None
@@ -165,7 +165,7 @@ class BarStrategy(object):
             self.down_sell_index = -1
             self.down_buy_index = -1
 
-    def update_info(self, newdata):
+    def update_wealth(self, newdata):
         # 1. 算老值
         if newdata[0] is None:
             return True
@@ -201,16 +201,12 @@ class BarStrategy(object):
             self.down_sell_index = self._get_downsell_index(self.down_sell_index)
             # 3. 策略标记缩并
             print(22)
-            print(self.up_buy_index, self.up_sell_index, self.down_sell_index, self.down_buy_index)
             self._shrink_index()
+            print(self.old_up_buy_index, self.old_up_sell_index, self.old_down_sell_index, self.old_down_buy_index)
             print(self.up_buy_index, self.up_sell_index, self.down_sell_index, self.down_buy_index)
-            # todo: 为了打印标记拆分拆分
+            # print(self.up_buy_index, self.up_sell_index, self.down_sell_index, self.down_buy_index)
             # 5. 策略操作更新
             self.do_strategy()
-            # 6. 策略只根据索引的状态 关闭
-            self._check_reset()
-            # print(self.dq[-1], self.price_in_anchor, self.price_out_anchor, self.turtle_sig, 99)
-            # print(self.float_in_ratio, self.float_out_ratio)
         # 4. 算总额
         self.wealth_new = self.capital_old + self.dq[-1] * self.mount_old
         self.mount_new = (self.wealth_old - self.capital_new) / self.dq[-1]
@@ -219,6 +215,7 @@ class BarStrategy(object):
         # self.mount_new = mount_init
 
     def do_strategy(self):
+        # todo: 待做1
         if self.down_sell_index > -1:
             # 止损最高优先级
             # 保持资金百分比
@@ -358,9 +355,13 @@ def strategy_turtle(datas, win=10, up_sell=[0.5], down_sell=[-0.1], up_buy=[0.1,
     outhand4 = codecs.open(tmpfile4, "w", "utf8")
     tmpfile5 = os.path.join(os.path.expanduser('~'), "tmp5.txt")
     outhand5 = codecs.open(tmpfile5, "w", "utf8")
+    tmpfile6 = os.path.join(os.path.expanduser('~'), "tmp6.txt")
+    outhand6 = codecs.open(tmpfile6, "w", "utf8")
+    tmpfile7 = os.path.join(os.path.expanduser('~'), "tmp7.txt")
+    outhand7 = codecs.open(tmpfile7, "w", "utf8")
     for id1, price_new in enumerate(datas):
-        # 关键更新
-        pass_sig = bs.update_info([price_new])
+        # 1. 关键更新
+        pass_sig = bs.update_wealth([price_new])
         if not pass_sig:
             wealths.append(bs.wealth_new)
             keepcap.append(bs.capital_new / bs.wealth_new)
@@ -369,16 +370,17 @@ def strategy_turtle(datas, win=10, up_sell=[0.5], down_sell=[-0.1], up_buy=[0.1,
         outhand3.write("{}\n".format(bs.dq[-1] if bs.up_sell_index > -1  else None))
         outhand4.write("{}\n".format(bs.dq[-1] if bs.down_buy_index > -1 else None))
         outhand5.write("{}\n".format(bs.dq[-1] if bs.down_sell_index > -1 else None))
-        # outhand1.write("{}\n".format(bs.turtle_sig))
-        # outhand2.write("{}\n".format(bs.float_in_ratio))
-        # outhand3.write("{}\n".format(bs.float_out_ratio))
-        # outhand4.write("{}\n".format(bs.price_in_anchor))
-        # outhand5.write("{}\n".format(bs.price_out_anchor))
+        outhand6.write("{}\n".format(bs.wealth_new / bs.capital_init))
+        outhand7.write("{}\n".format(bs.capital_new / bs.wealth_new))
+        # 2. 策略只根据索引的状态 关闭
+        bs.update_check_reset()
     outhand1.close()
     outhand2.close()
     outhand3.close()
     outhand4.close()
     outhand5.close()
+    outhand6.close()
+    outhand7.close()
     tlen = len(datas)
     ratio_all = bs.wealth_new / capital_init
     ratio_day = pow(ratio_all, 1.0 / tlen)
@@ -433,13 +435,16 @@ def plot_datasig_package(datas):
     # 查看临时输出
     # pddata = pd.DataFrame({"Open": datas, "High": datas, "Low": datas, "Close": datas, "volumes": [1] * len(datas)})
     pddata = pd.DataFrame({"Open": datas, "High": datas, "Low": datas, "Close": datas})
-    pddata["Open"] = pddata["Open"] * 0.95
-    pddata["Close"] = pddata["Close"] * 1
-    pddata["High"] = pddata["High"] * 1.05
-    pddata["Low"] = pddata["Low"] * 0.9
+    pddata["Open"] = np.nan
+    pddata["Close"] = np.nan
+    pddata["High"] = np.nan
+    pddata["Low"] = np.nan
+    # pddata["Open"] = pddata["Open"] * 0.95
+    # pddata["Close"] = pddata["Close"] * 1
+    # pddata["High"] = pddata["High"] * 1.05
+    # pddata["Low"] = pddata["Low"] * 0.9
     orderl_pd = pd.date_range(start="19700101", periods=len(datas), freq='1D')
     pddata.set_index(orderl_pd, inplace=True)
-    # pddata.rename(index={0: 'indexName1'}, inplace=True)
     tmpfile1 = os.path.join(os.path.expanduser('~'), "tmp1.txt")
     with codecs.open(tmpfile1, "r", "utf8") as inhand:
         incont1 = inhand.readlines()
@@ -455,26 +460,46 @@ def plot_datasig_package(datas):
     tmpfile5 = os.path.join(os.path.expanduser('~'), "tmp5.txt")
     with codecs.open(tmpfile5, "r", "utf8") as inhand:
         incont5 = inhand.readlines()
+    tmpfile6 = os.path.join(os.path.expanduser('~'), "tmp6.txt")
+    with codecs.open(tmpfile6, "r", "utf8") as inhand:
+        incont6 = inhand.readlines()
+    tmpfile7 = os.path.join(os.path.expanduser('~'), "tmp7.txt")
+    with codecs.open(tmpfile7, "r", "utf8") as inhand:
+        incont7 = inhand.readlines()
     pddata["sig"] = [np.nan if i1.strip() == "None" else datas[id1] for id1, i1 in enumerate(incont1)]
     pddata["ub"] = [
-        np.nan if np.isnan(pddata["sig"][id1]) or i1.strip() == "None" or float(i1.strip()) < 0 else pddata.iloc[id1, 0]
+        np.nan if np.isnan(pddata["sig"][id1]) or i1.strip() == "None" or float(i1.strip()) < 0 else datas[id1]
         for id1, i1 in enumerate(incont2)]
     pddata["us"] = [
-        np.nan if np.isnan(pddata["sig"][id1]) or i1.strip() == "None" or float(i1.strip()) < 0 else pddata.iloc[id1, 1]
+        np.nan if np.isnan(pddata["sig"][id1]) or i1.strip() == "None" or float(i1.strip()) < 0 else datas[id1]
         for id1, i1 in enumerate(incont3)]
     pddata["db"] = [
-        np.nan if np.isnan(pddata["sig"][id1]) or i1.strip() == "None" or float(i1.strip()) < 0 else pddata.iloc[id1, 3]
+        np.nan if np.isnan(pddata["sig"][id1]) or i1.strip() == "None" or float(i1.strip()) < 0 else datas[id1]
         for id1, i1 in enumerate(incont4)]
     pddata["ds"] = [
-        np.nan if np.isnan(pddata["sig"][id1]) or i1.strip() == "None" or float(i1.strip()) < 0 else pddata.iloc[id1, 2]
+        np.nan if np.isnan(pddata["sig"][id1]) or i1.strip() == "None" or float(i1.strip()) < 0 else datas[id1]
         for id1, i1 in enumerate(incont5)]
+    wealth_plot = [float(i1.strip()) for i1 in incont6]
+    ratio_plot = [float(i1.strip()) for i1 in incont7]
+    # pddata["ub"] = [
+    #     np.nan if np.isnan(pddata["sig"][id1]) or i1.strip() == "None" or float(i1.strip()) < 0 else pddata.iloc[id1, 0]
+    #     for id1, i1 in enumerate(incont2)]
+    # pddata["us"] = [
+    #     np.nan if np.isnan(pddata["sig"][id1]) or i1.strip() == "None" or float(i1.strip()) < 0 else pddata.iloc[id1, 1]
+    #     for id1, i1 in enumerate(incont3)]
+    # pddata["db"] = [
+    #     np.nan if np.isnan(pddata["sig"][id1]) or i1.strip() == "None" or float(i1.strip()) < 0 else pddata.iloc[id1, 3]
+    #     for id1, i1 in enumerate(incont4)]
+    # pddata["ds"] = [
+    #     np.nan if np.isnan(pddata["sig"][id1]) or i1.strip() == "None" or float(i1.strip()) < 0 else pddata.iloc[id1, 2]
+    #     for id1, i1 in enumerate(incont5)]
     pddata["sig"][0] = 1
     pddata["ub"][0] = 1
     pddata["us"][0] = 1
     pddata["db"][0] = 1
     pddata["ds"][0] = 1
-    # print(pddata)
-    plot_stock_sig(pddata, [datas], pddata[["sig", "ub", "us", "db", "ds"]])
+    # print(pddata), ratio_plot
+    plot_stock_sig(pddata, [datas, wealth_plot], pddata[["sig", "ub", "us", "db", "ds"]])
 
 
 def get_kde_para(datas, plotsig=False):
@@ -524,7 +549,7 @@ def main():
     np.random.seed(113)
     # n, m, beta = 10000000, 1, 1.8
     # n, m, beta = 10, 1, 1.8
-    n, m, beta = 100, 1, 1.8
+    n, m, beta = 100000, 1, 1.8
     datas = generate_curve(n, m, beta, scale=0.01, plotsig=False)
     # datas = generate_curve(n, m, beta, scale=0.01, plotsig=True)
     print(datas, datas[-1])
@@ -532,8 +557,8 @@ def main():
                                    down_buy=[-0.05],
                                    plotsig=False)
     print(final_ratio)
-    # 查看临时输出
-    plot_datasig_package(datas)
+    # # 查看临时输出
+    # plot_datasig_package(datas)
     # plot_curve(list(range(len(incont1))), [incont1, incont2, incont3, incont4, incont5],
     exit()
     # 1. 历史回测，压力模拟。
