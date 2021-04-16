@@ -43,30 +43,60 @@ class BarStrategy(object):
         self.up_buy_index = -1
         self.down_buy_index = -1
         # 上一个不同的index
-        self.old_up_sell_index = -1
-        self.old_down_sell_index = -1
-        self.old_up_buy_index = -1
-        self.old_down_buy_index = -1
+        self.old_touch_up_sell_index = -1
+        self.old_touch_down_sell_index = -1
+        self.old_touch_up_buy_index = -1
+        self.old_touch_down_buy_index = -1
+        self.new_touch_up_sell_index = -1
+        self.new_touch_down_sell_index = -1
+        self.new_touch_up_buy_index = -1
+        self.new_touch_down_buy_index = -1
+        self.old_trade_up_sell_index = -1
+        self.old_trade_down_sell_index = -1
+        self.old_trade_up_buy_index = -1
+        self.old_trade_down_buy_index = -1
         # 当天是否更新了索引
-        self.active_up_sell_index = False
-        self.active_down_sell_index = False
-        self.active_up_buy_index = False
-        self.active_down_buy_index = False
         self.float_in_ratio = 0.0
         self.float_out_ratio = 0.0
         self.turtle_sig = False
 
+    def get_upbuy_index(self):
+        for idub, upbuy in enumerate(self.up_buy):
+            if self.float_in_ratio <= upbuy:
+                self.up_buy_index = idub - 1
+                self.new_touch_up_buy_index = idub - 1
+                break
+
+    def get_upsell_index(self):
+        for idus, upsell in enumerate(self.up_sell):
+            if self.float_in_ratio <= upsell:
+                self.up_sell_index = idus - 1
+                self.new_touch_up_sell_index = idus - 1
+                break
+
+    def get_downsell_index(self):
+        for idds, downsell in enumerate(self.down_sell):
+            if self.float_out_ratio >= downsell:
+                self.down_sell_index = idds - 1
+                self.new_touch_down_sell_index = idds - 1
+                break
+
+    def get_downbuy_index(self):
+        for iddb, downbuy in enumerate(self.down_buy):
+            if self.float_out_ratio >= downbuy:
+                self.down_buy_index = iddb - 1
+                self.new_touch_down_buy_index = iddb - 1
+                break
+
     def _get_upbuy_index(self, upbuy_index):
         # 更新才赋旧值
         firstsig = True
-        self.active_up_buy_index = False
         for idub, upbuy in enumerate(self.up_buy):
             # print(31, self.float_in_ratio, upbuy, idub, upbuy_index)
             if self.float_in_ratio > upbuy and idub > upbuy_index:
                 if firstsig:
-                    self.old_up_buy_index = self.up_buy_index
+                    self.old_touch_up_buy_index = self.up_buy_index
                     firstsig = False
-                    self.active_up_buy_index = True
                 upbuy_index = idub
             elif self.float_in_ratio <= upbuy:
                 break
@@ -76,14 +106,12 @@ class BarStrategy(object):
         # 上卖 优先覆盖 上买
         # 更新才赋旧值
         firstsig = True
-        self.active_up_sell_index = False
         for idus, upsell in enumerate(self.up_sell):
             # print(32, self.float_in_ratio, upsell, idus, upsell_index)
             if self.float_in_ratio > upsell and idus > upsell_index:
                 if firstsig:
-                    self.old_up_sell_index = self.up_sell_index
+                    self.old_touch_up_sell_index = self.up_sell_index
                     firstsig = False
-                    self.active_up_sell_index = True
                 upsell_index = idus
             elif self.float_in_ratio <= upsell:
                 break
@@ -92,14 +120,12 @@ class BarStrategy(object):
     def _get_downsell_index(self, downsell_index):
         # 更新才赋旧值
         firstsig = True
-        self.active_down_sell_index = False
         for idds, downsell in enumerate(self.down_sell):
             # print(33, self.float_out_ratio, downsell, idds, downsell_index)
             if self.float_out_ratio < downsell and idds > downsell_index:
                 if firstsig:
-                    self.old_down_sell_index = self.down_sell_index
+                    self.old_touch_down_sell_index = self.down_sell_index
                     firstsig = False
-                    self.active_down_sell_index = True
                 downsell_index = idds
             elif self.float_out_ratio >= downsell:
                 break
@@ -108,14 +134,12 @@ class BarStrategy(object):
     def _get_downbuy_index(self, downbuy_index):
         # 更新才赋旧值
         firstsig = True
-        self.active_down_buy_index = False
         for iddb, downbuy in enumerate(self.down_buy):
             # print(34, self.float_out_ratio, downbuy, iddb, downbuy_index)
             if self.float_out_ratio < downbuy and iddb > downbuy_index:
                 if firstsig:
-                    self.old_down_buy_index = self.down_buy_index
+                    self.old_touch_down_buy_index = self.down_buy_index
                     firstsig = False
-                    self.active_down_buy_index = True
                 downbuy_index = iddb
             elif self.float_out_ratio >= downbuy:
                 break
@@ -124,13 +148,13 @@ class BarStrategy(object):
     def _update_anchor(self):
         # 前提是 已经进入策略状态
         # 1. anchor 更新
-        if self.down_sell_index != -1 and self.old_down_sell_index == -1:
+        if self.down_sell_index != -1 and self.old_touch_down_sell_index == -1:
             self.price_out_anchor = max(list(self.dq) + [self.price_out_anchor])
-        if self.down_buy_index != -1 and self.old_down_buy_index == -1:
+        if self.down_buy_index != -1 and self.old_touch_down_buy_index == -1:
             self.price_out_anchor = max(list(self.dq) + [self.price_out_anchor])
-        # if self.price_in_anchor is not None and self.up_buy_index != -1 and self.old_up_buy_index == -1:
+        # if self.price_in_anchor is not None and self.up_buy_index != -1 and self.old_touch_up_buy_index == -1:
         #     self.price_in_anchor = min(self.dq+[self.price_in_anchor])
-        # if self.up_buy_index != -1 and self.old_up_buy_index == -1:
+        # if self.up_buy_index != -1 and self.old_touch_up_buy_index == -1:
         #     self.price_in_anchor = min(self.dq+[self.price_in_anchor])
         # 2. ratio 获取
         self.float_in_ratio = self.dq[-1] / self.price_in_anchor - 1
@@ -194,15 +218,20 @@ class BarStrategy(object):
             self._update_anchor()
             # 有了anchor未必达标最小阈值
             # 加仓, 上向 期上 买入
-            self.up_buy_index = self._get_upbuy_index(self.up_buy_index)
+            # self.up_buy_index = self._get_upbuy_index(self.up_buy_index)
+            self.get_upbuy_index()
             # 止赢, 上向 期下 卖出
-            self.up_sell_index = self._get_upsell_index(self.up_sell_index)
+            # self.up_sell_index = self._get_upsell_index(self.up_sell_index)
+            self.get_upsell_index()
             # 止损, 下向 期下 卖出
-            self.down_sell_index = self._get_downsell_index(self.down_sell_index)
+            # self.down_sell_index = self._get_downsell_index(self.down_sell_index)
+            self.get_downsell_index()
+            self.get_downbuy_index()
             # 3. 策略标记缩并
             print(22)
             self._shrink_index()
-            print(self.old_up_buy_index, self.old_up_sell_index, self.old_down_sell_index, self.old_down_buy_index)
+            print(self.old_touch_up_buy_index, self.old_touch_up_sell_index, self.old_touch_down_sell_index,
+                  self.old_touch_down_buy_index)
             print(self.up_buy_index, self.up_sell_index, self.down_sell_index, self.down_buy_index)
             # print(self.up_buy_index, self.up_sell_index, self.down_sell_index, self.down_buy_index)
             # 5. 策略操作更新
@@ -215,9 +244,9 @@ class BarStrategy(object):
         # self.mount_new = mount_init
 
     def do_strategy(self):
+        # 止损最高优先级
         # todo: 待做1
         if self.down_sell_index > -1:
-            # 止损最高优先级
             # 保持资金百分比
             cap_keep = self.wealth_new * (self.down_sell_index + 1) / self.down_sell_length
             if cap_keep > self.capital_old:
