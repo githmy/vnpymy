@@ -310,15 +310,54 @@ def generate_curve(n, m, beta, scale=0.01, plotsig=False):
     return ys
 
 
+class Race(object):
+    def __init__(self, upbuy, downbuy, upsell, downsell, n_std, price_std):
+        self.upbuy = upbuy
+        self.downbuy = downbuy
+        self.upsell = upsell
+        self.downsell = downsell
+        self.n_std = n_std
+        self.price_std = price_std
+        self.active_intent = 0.9
+        self.follow_intent = 0.1
+
+
+class Player(Race):
+    def __init__(self, actions):
+        super(Player, self).__init__(actions)
+
+
 class LiveCurve(object):
     # todo: 待做
+    # 价格离散
+    # 数量离散
+    # 30倍价格离散数量的个体
+    # 离散个体的数量演变
+    # 周期性外部条件
+    # 同类个体的生存条件
+    # 离散player策略租
     def __init__(self, n):
-        self.n = n
-        # self.a = 0
+        # 基本观察数量
+        self.bar_n = n
+        self.price_n = 1000
+        self.price_ratio = 1.001
+        self.price_mesh = [1.0]
+        tprice_mesh = [1.0]
+        for i1 in range(self.price_n):
+            self.price_mesh.append(self.price_mesh[-1] * 1.001)
+            tprice_mesh.append(tprice_mesh[-1] / 1.001)
+        self.price_mesh = list(reversed(tprice_mesh[1:])) + self.price_mesh
+        # 规律参数
+        self.back_force = 0.99
+        self.race_n = 5
+        # 个体参数
+        self.race_n = 5
+        self.player_n = 5
+        self.player_json = {1: [5]}
 
     def gene_bar(self):
         bar_list = []
-        for i in range(self.n):
+        for i in range(self.bar_n):
             bar_list.append(1)
         return bar_list
 
