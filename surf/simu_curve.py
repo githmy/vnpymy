@@ -350,8 +350,11 @@ class LiveCurve(object):
         # 规律参数
         self.back_force = 0.99
         self.race_n = 5
+        # 曲线参数
+        self.price_json = {}
+        self.rise_cost = 0.8
         # 个体参数
-        self.race_n = 5
+        self.race_n = 1
         self.player_n = 5
         self.player_json = {1: [5]}
 
