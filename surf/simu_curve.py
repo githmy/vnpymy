@@ -9,6 +9,7 @@ from sklearn.model_selection import GridSearchCV
 from collections import deque
 import time
 import codecs
+import random
 
 pd.set_option('display.max_columns', None)
 
@@ -333,11 +334,10 @@ class LiveCurve(object):
     # 数量离散
     # 30倍价格离散数量的个体
     # 离散个体的数量演变
-    # 周期性外部条件
     # 同类个体的生存条件
     # 离散player策略租
     def __init__(self, n):
-        # 基本观察数量
+        # 1. 基本观察数量
         self.bar_n = n
         self.price_n = 1000
         self.price_ratio = 1.001
@@ -347,27 +347,45 @@ class LiveCurve(object):
             self.price_mesh.append(self.price_mesh[-1] * 1.001)
             tprice_mesh.append(tprice_mesh[-1] / 1.001)
         self.price_mesh = list(reversed(tprice_mesh[1:])) + self.price_mesh
-        # 规律参数
-        self.back_force = 0.99
-        self.race_n = 5
-        # 曲线参数
+        # 2. 规律参数
+        self.back_force = 0.9999
+        # 3. 曲线参数
         self.price_json = {}
         self.rise_cost = 0.8
-        # 个体参数
-        self.race_n = 1
+        # 4. bar 指标
+        self.price_old = 1.0
+        self.price_new = 1.0
+        # 5. 周期性外部条件
+        # 活跃度
+        self.disturb_std = 0.004
+        self.disturb_cut = 0.01
+        # 6. 个体参数
+        self.race_n = 5
         self.player_n = 5
         self.player_json = {1: [5]}
 
-    def gene_bar(self):
+    def _random(self):
+        v = random.normalvariate(1, self.disturb_std)
+        if v > 1. + self.disturb_cut:
+            return 1.
+        elif v < 1. - self.disturb_cut:
+            return 1.
+        else:
+            return v
+
+    def generate_bar(self):
         bar_list = []
         for i in range(self.bar_n):
-            bar_list.append(1)
+            self.price_old = self.price_new
+            self.price_new = self.price_old * self._random()  # 随机扰动值
+            self.price_new = 1 + (self.price_new - 1) * self.back_force  # 恢复价格力
+            bar_list.append(self.price_new)
         return bar_list
 
 
 def generate_simucurve(n, plotsig=False):
     lc = LiveCurve(n)
-    bar_list = lc.gene_bar()
+    bar_list = lc.generate_bar()
     if plotsig:
         x = list(range(n))
         titles = ["simu curve"]
@@ -626,9 +644,10 @@ def main():
     np.random.seed(113)
     # n, m, beta = 10000000, 1, 1.8
     # n, m, beta = 10, 1, 1.8
-    n, m, beta = 1000, 1, 1.8
+    n, m, beta = 100000, 1, 1.8
     # datas = generate_curve(n, m, beta, scale=0.01, plotsig=True)
     # datas = generate_curve(n, m, beta, scale=0.01, plotsig=False)
+    random.seed(333)
     datas = generate_simucurve(n, plotsig=True)
     # datas = generate_simucurve(n, plotsig=False)
     print(datas, datas[-1])
