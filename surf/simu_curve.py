@@ -312,7 +312,7 @@ def generate_curve(n, m, beta, scale=0.01, plotsig=False):
 
 
 class Race(object):
-    def __init__(self, upbuy, downbuy, upsell, downsell, n_std, price_std):
+    def __init__(self, upbuy, downbuy, upsell, downsell, n_std, price_std, player_n):
         self.upbuy = upbuy
         self.downbuy = downbuy
         self.upsell = upsell
@@ -321,6 +321,13 @@ class Race(object):
         self.price_std = price_std
         self.active_intent = 0.9
         self.follow_intent = 0.1
+        self.player_n = player_n
+
+    def generate_player(self):
+        player_list = []
+        for i1 in self.player_n:
+            player_list.append(Player())
+        return player_list
 
 
 class Player(Race):
