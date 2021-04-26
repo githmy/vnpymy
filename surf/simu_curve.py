@@ -311,6 +311,259 @@ def generate_curve(n, m, beta, scale=0.01, plotsig=False):
     return ys
 
 
+class SimuStrategy(object):
+    def __init__(self, cap_init, mount_init=0.0, win=10,
+                 up_sell=[0.5], down_sell=[-0.1],
+                 up_buy=[0.1, 0.2], down_buy=[-0.5]):
+        self.capital_init = cap_init
+        self.capital_old = cap_init
+        self.capital_new = cap_init
+        self.mount_new = mount_init
+        self.mount_old = mount_init
+        self.wealth_new = cap_init
+        self.wealth_old = cap_init
+        self.up_sell = up_sell
+        self.down_sell = down_sell
+        self.up_buy = up_buy
+        self.down_buy = down_buy
+        self.current_id = 0
+        self.up_sell_length = len(self.up_sell)
+        self.down_sell_length = len(self.down_sell)
+        self.up_buy_length = len(self.up_buy)
+        self.down_buy_length = len(self.down_buy)
+        self.win = win
+        self.dq = deque(maxlen=self.win)
+        self.olddata = []
+        self.newdata = []
+        self._trade_sig_reset()
+
+    def _trade_sig_reset(self):
+        self.old_touch_up_sell_index = -1
+        self.old_touch_down_sell_index = -1
+        self.old_touch_up_buy_index = -1
+        self.old_touch_down_buy_index = -1
+        self.new_touch_up_sell_index = -1
+        self.new_touch_down_sell_index = -1
+        self.new_touch_up_buy_index = -1
+        self.new_touch_down_buy_index = -1
+        self.old_trade_up_sell_index = -1
+        self.old_trade_down_sell_index = -1
+        self.old_trade_up_buy_index = -1
+        self.old_trade_down_buy_index = -1
+        self.new_trade_up_sell_index = -1
+        self.new_trade_down_sell_index = -1
+        self.new_trade_up_buy_index = -1
+        self.new_trade_down_buy_index = -1
+        # 当天是否更新了索引
+        self.float_in_ratio = 0.0
+        self.float_out_ratio = 0.0
+        self.price_out_anchor = None
+        self.price_in_anchor = None
+        self.turtle_sig = False
+        self.old_up_sell_ratio = 0.0
+        self.old_down_sell_ratio = 0.0
+        self.old_up_buy_ratio = 0.0
+        self.old_down_buy_ratio = 0.0
+        self.new_up_sell_ratio = 0.0
+        self.new_down_sell_ratio = 0.0
+        self.new_up_buy_ratio = 0.0
+        self.new_down_buy_ratio = 0.0
+
+    def get_upbuy_index(self):
+        self.old_touch_up_buy_index = self.new_touch_up_buy_index
+        for idub, upbuy in enumerate(self.up_buy):
+            if self.float_in_ratio > upbuy:
+                self.new_touch_up_buy_index = idub
+        # 如果新旧不同，设为买入指标
+        if self.new_touch_up_buy_index > self.old_touch_up_buy_index:
+            self.new_trade_up_buy_index = self.new_touch_up_buy_index
+
+    def get_upsell_index(self):
+        self.old_touch_up_sell_index = self.new_touch_up_sell_index
+        for idus, upsell in enumerate(self.up_sell):
+
+            if self.float_in_ratio > upsell:
+                self.new_touch_up_sell_index = idus
+        # 如果新旧不同，设为买入指标
+        if self.new_touch_up_sell_index > self.old_touch_up_sell_index:
+            self.new_trade_up_sell_index = self.new_touch_up_sell_index
+
+    def get_downsell_index(self):
+        self.old_touch_down_sell_index = self.new_touch_down_sell_index
+        for idds, downsell in enumerate(self.down_sell):
+            if self.float_out_ratio < downsell:
+                self.new_touch_down_sell_index = idds
+        # 如果新旧不同，设为买入指标
+        if self.new_touch_down_sell_index > self.old_touch_down_sell_index:
+            self.new_trade_down_sell_index = self.new_touch_down_sell_index
+
+    def get_downbuy_index(self):
+        self.old_touch_down_buy_index = self.new_touch_down_buy_index
+        for iddb, downbuy in enumerate(self.down_buy):
+            if self.float_out_ratio < downbuy:
+                self.new_touch_down_buy_index = iddb
+        # 如果新旧不同，设为买入指标
+        if self.new_touch_down_buy_index > self.old_touch_down_buy_index:
+            self.new_trade_down_buy_index = self.new_touch_down_buy_index
+
+    def _update_anchor(self):
+        # 前提是 已经进入策略状态
+        # 1. anchor 更新
+        # if self.new_trade_down_sell_index != -1 or self.new_trade_down_buy_index != -1:
+        self.price_out_anchor = max(list(self.dq) + [self.price_out_anchor])
+        # if self.price_in_anchor is not None and self.new_trade_up_buy_index != -1 and self.old_touch_up_buy_index == -1:
+        #     self.price_in_anchor = min(self.dq+[self.price_in_anchor])
+        # if self.new_trade_up_buy_index != -1 and self.old_touch_up_buy_index == -1:
+        #     self.price_in_anchor = min(self.dq+[self.price_in_anchor])
+        # 2. ratio 获取
+        self.float_in_ratio = self.dq[-1] / self.price_in_anchor - 1
+        self.float_out_ratio = self.dq[-1] / self.price_out_anchor - 1
+
+    def _shrink_index(self):
+        # 根据规则缩并 trade 只取一个，取较大的比率
+        if self.new_touch_down_sell_index > -1 or self.new_touch_up_sell_index > -1:
+            self.new_trade_up_buy_index = -1
+            self.new_trade_down_buy_index = -1
+            self.old_up_sell_ratio = self.new_up_sell_ratio
+            self.old_down_sell_ratio = self.new_down_sell_ratio
+            self.new_up_sell_ratio = (self.new_trade_up_sell_index + 1) / self.up_sell_length
+            self.new_down_sell_ratio = (self.new_trade_down_sell_index + 1) / self.down_sell_length
+            if self.new_up_sell_ratio < self.new_down_sell_ratio:
+                # 比率小于之前，不做标记
+                if self.old_down_sell_ratio >= self.new_down_sell_ratio:
+                    self.new_trade_down_sell_index = -1
+                self.new_trade_up_sell_index = -1
+            else:
+                # 比率小于之前，不做标记
+                if self.old_up_sell_ratio >= self.new_up_sell_ratio:
+                    self.new_trade_up_sell_index = -1
+                self.new_trade_down_sell_index = -1
+        else:
+            self.old_up_buy_ratio = self.new_up_buy_ratio
+            self.old_down_buy_ratio = self.new_down_buy_ratio
+            self.new_up_buy_ratio = (self.new_trade_up_buy_index + 1) / self.up_buy_length
+            self.new_down_buy_ratio = (self.new_trade_down_buy_index + 1) / self.down_buy_length
+            if self.new_up_buy_ratio < self.new_down_buy_ratio:
+                if self.old_down_buy_ratio >= self.new_down_buy_ratio:
+                    self.new_down_buy_ratio = -1
+                self.new_trade_up_buy_index = -1
+            else:
+                if self.old_up_buy_ratio >= self.new_up_buy_ratio:
+                    self.new_up_buy_ratio = -1
+                self.new_trade_down_buy_index = -1
+        # 新trade 不为-1 且高于上一次的索引， 旧trade 才赋值
+        if self.new_trade_down_sell_index > self.old_trade_down_sell_index:
+            self.old_trade_down_sell_index = self.new_trade_down_sell_index
+        else:
+            self.new_trade_down_sell_index = -1
+        if self.new_trade_down_buy_index > self.old_trade_down_buy_index:
+            self.old_trade_down_buy_index = self.new_trade_down_buy_index
+        else:
+            self.new_trade_down_buy_index = -1
+        if self.new_trade_up_sell_index > self.old_trade_up_sell_index:
+            self.old_trade_up_sell_index = self.new_trade_up_sell_index
+        else:
+            self.new_trade_up_sell_index = -1
+        if self.new_trade_up_buy_index > self.old_trade_up_buy_index:
+            self.old_trade_up_buy_index = self.new_trade_up_buy_index
+        else:
+            self.new_trade_up_buy_index = -1
+        # 如果没买，就当已经卖过了，不能再卖, 提前重置标记。
+        if self.old_trade_down_buy_index < 0 and self.old_trade_up_buy_index < 0:
+            if self.new_trade_up_sell_index > -1 or self.new_trade_down_sell_index > -1:
+                self._trade_sig_reset()
+
+    def update_check_reset(self):
+        if self.new_trade_down_sell_index + 1 == self.down_sell_length or self.new_trade_up_sell_index + 1 == self.up_sell_length:
+            self._trade_sig_reset()
+
+    def update_wealth(self, newdata):
+        # 1. 算老值
+        self.current_id += 1
+        if newdata[0] is None:
+            return True
+        self.olddata = self.newdata
+        self.capital_old = self.capital_new
+        self.mount_old = self.mount_new
+        if len(self.dq) == 0:
+            self.wealth_old = self.capital_old
+        else:
+            self.wealth_old = self.capital_old + self.dq[-1] * self.mount_old
+        self.dq.append(newdata[0])
+        self.wealth_new = self.capital_old + self.dq[-1] * self.mount_old
+        if len(self.dq) < self.win:
+            return True
+        # 2. 算新标记
+        maxdq = max(list(self.dq)[:-1])
+        if self.price_in_anchor is None and self.dq[-1] > maxdq:
+            # 初始设置，记录策略标记
+            maxdq = max(list(self.dq)[:-1])
+            self.price_in_anchor = maxdq
+            self.float_in_ratio = self.dq[-1] / self.price_in_anchor - 1
+            self.price_out_anchor = self.dq[-1]
+            self.float_out_ratio = 0.0
+            self.turtle_sig = True
+        if self.turtle_sig:
+            # 更新 上下锚点
+            self._update_anchor()
+            # 有了anchor未必达标最小阈值
+            # 加仓, 上向 期上 买入
+            # self.new_trade_up_buy_index = self._get_upbuy_index(self.new_trade_up_buy_index)
+            self.get_upbuy_index()
+            # 止赢, 上向 期下 卖出
+            # self.new_trade_up_sell_index = self._get_upsell_index(self.new_trade_up_sell_index)
+            self.get_upsell_index()
+            # 止损, 下向 期下 卖出
+            # self.new_trade_down_sell_index = self._get_downsell_index(self.new_trade_down_sell_index)
+            self.get_downsell_index()
+            self.get_downbuy_index()
+            # 3. 策略标记缩并
+            self._shrink_index()
+            # if self.turtle_sig:
+            # if False:
+            #     print("current_id", self.current_id)
+            #     print(self.old_touch_up_buy_index, self.old_touch_up_sell_index, self.old_touch_down_sell_index,
+            #           self.old_touch_down_buy_index)
+            #     print(self.new_touch_up_buy_index, self.new_touch_up_sell_index, self.new_touch_down_sell_index,
+            #           self.new_touch_down_buy_index)
+            #     print(self.old_trade_up_buy_index, self.old_trade_up_sell_index, self.old_trade_down_sell_index,
+            #           self.old_trade_down_buy_index)
+            #     print(self.new_trade_up_buy_index, self.new_trade_up_sell_index, self.new_trade_down_sell_index,
+            #           self.new_trade_down_buy_index)
+            #     print(self.dq[-1], self.price_in_anchor, self.price_out_anchor, self.float_in_ratio,
+            #           self.float_out_ratio)
+            # 5. 策略操作更新
+            self.do_strategy()
+        # 4. 算总额
+        self.newdata = newdata
+        # print("current_id", self.current_id)
+        # print(self.wealth_new / self.capital_init, self.mount_new, newdata)
+        # self.capital_new = cap_init
+        # self.mount_new = mount_init
+
+    def do_strategy(self):
+        # 止损最高优先级
+        if self.new_trade_down_sell_index > -1:
+            # 保持资金百分比
+            self.capital_new = self.wealth_new * self.new_down_sell_ratio
+            self.mount_new = self.wealth_new * (1 - self.new_down_sell_ratio) / self.dq[-1]
+        elif self.new_trade_up_sell_index > -1:
+            # 预防次等优先级, 获利卖
+            self.capital_new = self.wealth_new * self.new_up_sell_ratio
+            self.mount_new = self.wealth_new * (1 - self.new_up_sell_ratio) / self.dq[-1]
+        elif self.new_trade_up_buy_index > -1:
+            # 交易最低优先级, 加仓位
+            self.capital_new = self.wealth_new * self.new_up_buy_ratio
+            self.mount_new = self.wealth_new * (1 - self.new_up_buy_ratio) / self.dq[-1]
+        elif self.new_trade_down_buy_index > -1:
+            # 交易最低优先级, 加仓位
+            self.capital_new = self.wealth_new * self.new_down_buy_ratio
+            self.mount_new = self.wealth_new * (1 - self.new_down_buy_ratio) / self.dq[-1]
+        else:
+            self.capital_new = self.capital_old
+            self.mount_new = self.mount_new
+
+
 class Race(object):
     def __init__(self, upbuy, downbuy, upsell, downsell, n_std, price_std, player_n):
         self.upbuy = upbuy
@@ -331,8 +584,30 @@ class Race(object):
 
 
 class Player(Race):
-    def __init__(self, actions):
-        super(Player, self).__init__(actions)
+    # 一个代表一个代表性的微群体，微群体构成群体，群体构成等级
+    def __init__(self, upbuy, downbuy, upsell, downsell, n_std, price_std, player_n, len_price_mesh):
+        super(Player, self).__init__(*[])
+        # 变前的量
+        self.mount_mesh_old = [0.0] * len_price_mesh
+        # 当前变动盘口
+        self.mount_mesh_change = [0.0] * len_price_mesh
+        # 变后的量
+        self.mount_mesh_new = [0.0] * len_price_mesh
+        self.captical = 1e2
+
+    def captial_in(self):
+        # 注入 或 分红
+        pass
+
+    def captial_out(self):
+        # tax out 或 退出
+        pass
+
+    def stratege_mount(self):
+        pass
+
+    def back_price_mesh(self, price_mesh):
+        return price_mesh
 
 
 class LiveCurve(object):
@@ -354,6 +629,7 @@ class LiveCurve(object):
             self.price_mesh.append(self.price_mesh[-1] * 1.001)
             tprice_mesh.append(tprice_mesh[-1] / 1.001)
         self.price_mesh = list(reversed(tprice_mesh[1:])) + self.price_mesh
+        self.price_mesh_index = -1
         # 2. 规律参数
         self.back_force = 0.9999
         # 3. 曲线参数
@@ -651,7 +927,7 @@ def main():
     np.random.seed(113)
     # n, m, beta = 10000000, 1, 1.8
     # n, m, beta = 10, 1, 1.8
-    n, m, beta = 100000, 1, 1.8
+    n, m, beta = 1000, 1, 1.8
     # datas = generate_curve(n, m, beta, scale=0.01, plotsig=True)
     # datas = generate_curve(n, m, beta, scale=0.01, plotsig=False)
     random.seed(333)
