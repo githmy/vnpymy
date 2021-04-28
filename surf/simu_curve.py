@@ -18,6 +18,7 @@ class BarStrategy(object):
     def __init__(self, cap_init, mount_init=0.0, win=10,
                  up_sell=[0.5], down_sell=[-0.1],
                  up_buy=[0.1, 0.2], down_buy=[-0.5]):
+        self.strategy_name = "turtle"
         self.capital_init = cap_init
         self.capital_old = cap_init
         self.capital_new = cap_init
@@ -315,6 +316,7 @@ class SimuStrategy(object):
     def __init__(self, cap_init, mount_init=0.0, win=10,
                  up_sell=[0.5], down_sell=[-0.1],
                  up_buy=[0.1, 0.2], down_buy=[-0.5]):
+        self.strategy_name = "turtle"
         self.capital_init = cap_init
         self.capital_old = cap_init
         self.capital_new = cap_init
@@ -657,6 +659,21 @@ class LiveCurve(object):
             return v
 
     def generate_bar(self):
+        bs = SimuStrategy(capital_init, mount_init=0.0, win=win,
+                         up_sell=up_sell, down_sell=down_sell,
+                         up_buy=up_buy, down_buy=down_buy)
+        for id1, price_new in enumerate(datas):
+            # 1. 关键更新
+            pass_sig = bs.update_wealth([price_new])
+            if not pass_sig:
+                wealths.append(bs.wealth_new)
+                keepcap.append(bs.capital_new / bs.wealth_new)
+            # 2. 策略只根据索引的状态 关闭
+            bs.update_check_reset()
+        tlen = len(datas)
+        ratio_all = bs.wealth_new / capital_init
+        ratio_day = pow(ratio_all, 1.0 / tlen)
+
         bar_list = []
         for i in range(self.bar_n):
             self.price_old = self.price_new
