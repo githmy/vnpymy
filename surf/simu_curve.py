@@ -565,12 +565,12 @@ class SimuStrategy(object):
             self.capital_new = self.capital_old
             self.mount_new = self.mount_new
 
-    def hung_mount(self, price_mesh):
+    def hung_mount(self, price_mesh, price_json):
         # 悬挂待 落实
         price_mesh
         return price_mesh
 
-    def done_mount(self, price_mesh):
+    def done_mount(self, price_mesh, price_json):
         # 落实 数量
         price_mesh
         return price_mesh
@@ -641,11 +641,11 @@ class LiveCurve(object):
             self.price_mesh.append(self.price_mesh[-1] * 1.001)
             tprice_mesh.append(tprice_mesh[-1] / 1.001)
         self.price_mesh = list(reversed(tprice_mesh[1:])) + self.price_mesh
+        self.price_json = {i1: 0.0 for i1 in self.price_mesh}
         self.price_mesh_index = -1
         # 2. 规律参数
         self.back_force = 0.9999
         # 3. 曲线参数
-        self.price_json = {}
         self.rise_cost = 0.8
         # 4. bar 指标
         self.price_old = 1.0
@@ -656,8 +656,29 @@ class LiveCurve(object):
         self.disturb_cut = 0.01
         # 6. 个体参数
         self.race_n = 5
-        self.player_n = 5
-        self.player_json = {1: [5]}
+        self.player_list = []
+        #  upbuy, downbuy, upsell, downsell, n_std, price_std, player_n
+        upbuy = [0.01]
+        downbuy = [-0.3]
+        upsell = [0.1]
+        downsell = [-0.01]
+        # n代表最当前价位，小单位的个数
+        n_std = 100
+        index_std = 0.005
+        # 群体随机目标点位的个数
+        player_n = 5
+        self.player_list.append([SimuStrategy, upbuy, downbuy, upsell, downsell, n_std, index_std, player_n])
+        upbuy = [0.02]
+        downbuy = [-0.3]
+        upsell = [0.1]
+        downsell = [-0.01]
+        n_std = 100
+        index_std = 0.005
+        player_n = 5
+        self.player_list.append([SimuStrategy, upbuy, downbuy, upsell, downsell, n_std, index_std, player_n])
+        print(self.player_list)
+        self.player_classes = []
+        self.get_current_players()
 
     def _random(self):
         v = random.normalvariate(1, self.disturb_std)
@@ -668,14 +689,18 @@ class LiveCurve(object):
         else:
             return v
 
+    def get_current_players(self):
+        for i1 in self.player_list:
+            self.player_classes.append([])
+
     def generate_bar(self):
         bs = SimuStrategy(capital_init, mount_init=0.0, win=win,
                           up_sell=up_sell, down_sell=down_sell,
                           up_buy=up_buy, down_buy=down_buy)
         for id1, price_new in enumerate(datas):
             # 1. 关键更新
-            pass_sig = bs.hung_mount(self.price_mesh)
-            pass_sig = bs.done_mount(self.price_mesh)
+            pass_sig = bs.hung_mount(self.price_mesh, self.price_json)
+            pass_sig = bs.done_mount(self.price_mesh, self.price_json)
             pass_sig = bs.update_wealth([price_new])
             if not pass_sig:
                 wealths.append(bs.wealth_new)
