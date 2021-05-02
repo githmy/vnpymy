@@ -313,10 +313,15 @@ def generate_curve(n, m, beta, scale=0.01, plotsig=False):
 
 
 class SimuStrategy(object):
-    def __init__(self, cap_init, mount_init=0.0, win=10, std_n=100,
+    def __init__(self, cap_init, mount_init=0.0, win=10, std_n=100, name=None,
                  up_sell=[0.5], down_sell=[-0.1],
                  up_buy=[0.1, 0.2], down_buy=[-0.5]):
-        self.strategy_name = "turtle"
+        t_up_sell = "_".join(map(str, up_sell))
+        t_down_sell = "_".join(map(str, down_sell))
+        t_up_buy = "_".join(map(str, up_buy))
+        t_down_buy = "_".join(map(str, down_buy))
+        self.strategy_name = "turtle-upsell{}-downsell{}-upbuy{}-downbuy{}-win{}".format(
+            t_up_sell, t_down_sell, t_up_buy, t_down_buy, str(win)) if name is None else name
         self.capital_init = cap_init
         self.capital_old = cap_init
         self.capital_new = cap_init
@@ -658,6 +663,10 @@ class LiveCurve(object):
         self.race_n = 5
         self.player_list = []
         # SimuStrategy, upbuy, downbuy, upsell, downsell, n_std, index_std, player_n
+        cname = ""
+        cap_init = 10000
+        mount_init = 0.0
+        win = 10
         upbuy = [0.01, 0.03]
         downbuy = [-0.3]
         upsell = [0.1]
@@ -667,7 +676,8 @@ class LiveCurve(object):
         index_std = 0.05
         # 群体随机目标点位的个数
         player_n = 5
-        self.player_list.append([SimuStrategy, upbuy, downbuy, upsell, downsell, n_std, index_std, player_n])
+        self.player_list.append(
+            [SimuStrategy, cap_init, mount_init, win, upbuy, downbuy, upsell, downsell, n_std, index_std, player_n])
         upbuy = [0.02]
         downbuy = [-0.3]
         upsell = [0.1]
@@ -675,7 +685,8 @@ class LiveCurve(object):
         n_std = 100
         index_std = 0.005
         player_n = 5
-        self.player_list.append([SimuStrategy, upbuy, downbuy, upsell, downsell, n_std, index_std, player_n])
+        self.player_list.append(
+            [SimuStrategy, cap_init, mount_init, win, upbuy, downbuy, upsell, downsell, n_std, index_std, player_n])
         # player_classes 是 player_list 的展开
         self.player_classes = []
         self.get_current_players()
@@ -691,14 +702,14 @@ class LiveCurve(object):
 
     def get_current_players(self):
         # SimuStrategy, upbuy, downbuy, upsell, downsell, n_std, index_std, player_n
-        for Strategy, upbuy, downbuy, upsell, downsell, n_std, index_std, player_n in self.player_list:
+        for Strategy, cap_init, mount_init, win, upbuy, downbuy, upsell, downsell, n_std, index_std, player_n in self.player_list:
             for id2 in range(player_n):
                 upbuy_new = [ub * random.uniform(1 - index_std, 1 + index_std) for ub in upbuy]
                 downbuy_new = [ub * random.uniform(1 - index_std, 1 + index_std) for ub in downbuy]
                 upsell_new = [ub * random.uniform(1 - index_std, 1 + index_std) for ub in upsell]
                 downsell_new = [ub * random.uniform(1 - index_std, 1 + index_std) for ub in downsell]
                 # self.player_classes.append([Strategy, upbuy_new, downbuy_new, upsell_new, downsell_new, n_std])
-                self.player_classes.append(Strategy(cap_init, mount_init=0.0, win=10, std_n=std_n,
+                self.player_classes.append(Strategy(cap_init, mount_init=mount_init, win=win, std_n=n_std, name=None,
                                                     up_buy=upbuy_new, down_buy=downbuy_new,
                                                     up_sell=upsell_new, down_sell=downsell_new))
 
