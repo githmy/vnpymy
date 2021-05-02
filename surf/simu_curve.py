@@ -313,7 +313,7 @@ def generate_curve(n, m, beta, scale=0.01, plotsig=False):
 
 
 class SimuStrategy(object):
-    def __init__(self, cap_init, mount_init=0.0, win=10,
+    def __init__(self, cap_init, mount_init=0.0, win=10, std_n=100,
                  up_sell=[0.5], down_sell=[-0.1],
                  up_buy=[0.1, 0.2], down_buy=[-0.5]):
         self.strategy_name = "turtle"
@@ -657,14 +657,14 @@ class LiveCurve(object):
         # 6. 个体参数
         self.race_n = 5
         self.player_list = []
-        #  upbuy, downbuy, upsell, downsell, n_std, price_std, player_n
-        upbuy = [0.01]
+        # SimuStrategy, upbuy, downbuy, upsell, downsell, n_std, index_std, player_n
+        upbuy = [0.01, 0.03]
         downbuy = [-0.3]
         upsell = [0.1]
         downsell = [-0.01]
         # n代表最当前价位，小单位的个数
         n_std = 100
-        index_std = 0.005
+        index_std = 0.05
         # 群体随机目标点位的个数
         player_n = 5
         self.player_list.append([SimuStrategy, upbuy, downbuy, upsell, downsell, n_std, index_std, player_n])
@@ -676,7 +676,7 @@ class LiveCurve(object):
         index_std = 0.005
         player_n = 5
         self.player_list.append([SimuStrategy, upbuy, downbuy, upsell, downsell, n_std, index_std, player_n])
-        print(self.player_list)
+        # player_classes 是 player_list 的展开
         self.player_classes = []
         self.get_current_players()
 
@@ -690,8 +690,17 @@ class LiveCurve(object):
             return v
 
     def get_current_players(self):
-        for i1 in self.player_list:
-            self.player_classes.append([])
+        # SimuStrategy, upbuy, downbuy, upsell, downsell, n_std, index_std, player_n
+        for Strategy, upbuy, downbuy, upsell, downsell, n_std, index_std, player_n in self.player_list:
+            for id2 in range(player_n):
+                upbuy_new = [ub * random.uniform(1 - index_std, 1 + index_std) for ub in upbuy]
+                downbuy_new = [ub * random.uniform(1 - index_std, 1 + index_std) for ub in downbuy]
+                upsell_new = [ub * random.uniform(1 - index_std, 1 + index_std) for ub in upsell]
+                downsell_new = [ub * random.uniform(1 - index_std, 1 + index_std) for ub in downsell]
+                # self.player_classes.append([Strategy, upbuy_new, downbuy_new, upsell_new, downsell_new, n_std])
+                self.player_classes.append(Strategy(cap_init, mount_init=0.0, win=10, std_n=std_n,
+                                                    up_buy=upbuy_new, down_buy=downbuy_new,
+                                                    up_sell=upsell_new, down_sell=downsell_new))
 
     def generate_bar(self):
         bs = SimuStrategy(capital_init, mount_init=0.0, win=win,
