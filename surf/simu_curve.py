@@ -565,6 +565,16 @@ class SimuStrategy(object):
             self.capital_new = self.capital_old
             self.mount_new = self.mount_new
 
+    def hung_mount(self, price_mesh):
+        # 悬挂待 落实
+        price_mesh
+        return price_mesh
+
+    def done_mount(self, price_mesh):
+        # 落实 数量
+        price_mesh
+        return price_mesh
+
 
 class Race(object):
     def __init__(self, upbuy, downbuy, upsell, downsell, n_std, price_std, player_n):
@@ -660,10 +670,12 @@ class LiveCurve(object):
 
     def generate_bar(self):
         bs = SimuStrategy(capital_init, mount_init=0.0, win=win,
-                         up_sell=up_sell, down_sell=down_sell,
-                         up_buy=up_buy, down_buy=down_buy)
+                          up_sell=up_sell, down_sell=down_sell,
+                          up_buy=up_buy, down_buy=down_buy)
         for id1, price_new in enumerate(datas):
             # 1. 关键更新
+            pass_sig = bs.hung_mount(self.price_mesh)
+            pass_sig = bs.done_mount(self.price_mesh)
             pass_sig = bs.update_wealth([price_new])
             if not pass_sig:
                 wealths.append(bs.wealth_new)
