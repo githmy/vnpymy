@@ -570,6 +570,7 @@ class SimuStrategy(object):
             self.capital_new = self.capital_old
             self.mount_new = self.mount_new
 
+    # 下面是环境互动的函数
     def hung_mount(self, price_mesh, price_json):
         # 悬挂待 落实
         price_mesh
@@ -580,30 +581,25 @@ class SimuStrategy(object):
         price_mesh
         return price_mesh
 
+    def captial_in(self):
+        # 注入 或 分红
+        pass
 
-class Race(object):
-    def __init__(self, upbuy, downbuy, upsell, downsell, n_std, price_std, player_n):
-        self.upbuy = upbuy
-        self.downbuy = downbuy
-        self.upsell = upsell
-        self.downsell = downsell
-        self.n_std = n_std
-        self.price_std = price_std
-        self.active_intent = 0.9
-        self.follow_intent = 0.1
-        self.player_n = player_n
+    def captial_out(self):
+        # tax out 或 退出
+        pass
 
-    def generate_player(self):
-        player_list = []
-        for i1 in self.player_n:
-            player_list.append(Player())
-        return player_list
+    def stratege_mount(self):
+        pass
+
+    def back_price_mesh(self, price_mesh):
+        return price_mesh
 
 
-class Player(Race):
+class Player():
     # 一个代表一个代表性的微群体，微群体构成群体，群体构成等级
     def __init__(self, upbuy, downbuy, upsell, downsell, n_std, price_std, player_n, len_price_mesh):
-        super(Player, self).__init__(*[])
+        # super(Player, self).__init__(*[])
         # 变前的量
         self.mount_mesh_old = [0.0] * len_price_mesh
         # 当前变动盘口
@@ -649,12 +645,14 @@ class LiveCurve(object):
         self.price_json = {i1: 0.0 for i1 in self.price_mesh}
         self.price_mesh_index = -1
         # 2. 规律参数
-        self.back_force = 0.9999
+        # self.back_force = 0.9999
+        self.back_force = 0.9999999999
         # 3. 曲线参数
         self.rise_cost = 0.8
         # 4. bar 指标
         self.price_old = 1.0
         self.price_new = 1.0
+        self.mount_new = 0.0
         # 5. 周期性外部条件
         # 活跃度
         self.disturb_std = 0.004
@@ -662,10 +660,9 @@ class LiveCurve(object):
         # 6. 个体参数
         self.race_n = 5
         self.player_list = []
-        # SimuStrategy, upbuy, downbuy, upsell, downsell, n_std, index_std, player_n
-        cname = ""
-        cap_init = 10000
-        mount_init = 0.0
+        # SimuStrategy, win, upbuy, downbuy, upsell, downsell, n_std, index_std, player_n
+        self.global_cap_init = 1e10
+        self.global_mount_init = 1e10
         win = 10
         upbuy = [0.01, 0.03]
         downbuy = [-0.3]
@@ -676,8 +673,7 @@ class LiveCurve(object):
         index_std = 0.05
         # 群体随机目标点位的个数
         player_n = 5
-        self.player_list.append(
-            [SimuStrategy, cap_init, mount_init, win, upbuy, downbuy, upsell, downsell, n_std, index_std, player_n])
+        self.player_list.append([SimuStrategy, win, upbuy, downbuy, upsell, downsell, n_std, index_std, player_n])
         upbuy = [0.02]
         downbuy = [-0.3]
         upsell = [0.1]
@@ -685,64 +681,70 @@ class LiveCurve(object):
         n_std = 100
         index_std = 0.005
         player_n = 5
-        self.player_list.append(
-            [SimuStrategy, cap_init, mount_init, win, upbuy, downbuy, upsell, downsell, n_std, index_std, player_n])
+        self.player_list.append([SimuStrategy, win, upbuy, downbuy, upsell, downsell, n_std, index_std, player_n])
         # player_classes 是 player_list 的展开
         self.player_classes = []
-        self.get_current_players()
+        # 7. 初始化确保每个类的数量和一样
+        self.player_num = sum([i1[-1] for i1 in self.player_list])
+        self.init_current_players()
 
     def _random(self):
         v = random.normalvariate(1, self.disturb_std)
         if v > 1. + self.disturb_cut:
             return 1.
-        elif v < 1. - self.disturb_cut:
+        if v < 1. - self.disturb_cut:
             return 1.
-        else:
-            return v
+        return v
 
-    def get_current_players(self):
+    def init_player_cap_mount(self, player_num):
+        # captical mount 均分
+        return [self.global_cap_init / player_num] * player_num, [self.global_mount_init / player_num] * player_num,
+
+    def init_current_players(self):
         # SimuStrategy, upbuy, downbuy, upsell, downsell, n_std, index_std, player_n
-        for Strategy, cap_init, mount_init, win, upbuy, downbuy, upsell, downsell, n_std, index_std, player_n in self.player_list:
+        cap_init_list, mount_init_list = self.init_player_cap_mount(self.player_num)
+        counter = 0
+        for Strategy, win, upbuy, downbuy, upsell, downsell, n_std, index_std, player_n in self.player_list:
             for id2 in range(player_n):
                 upbuy_new = [ub * random.uniform(1 - index_std, 1 + index_std) for ub in upbuy]
                 downbuy_new = [ub * random.uniform(1 - index_std, 1 + index_std) for ub in downbuy]
                 upsell_new = [ub * random.uniform(1 - index_std, 1 + index_std) for ub in upsell]
                 downsell_new = [ub * random.uniform(1 - index_std, 1 + index_std) for ub in downsell]
-                # self.player_classes.append([Strategy, upbuy_new, downbuy_new, upsell_new, downsell_new, n_std])
-                self.player_classes.append(Strategy(cap_init, mount_init=mount_init, win=win, std_n=n_std, name=None,
-                                                    up_buy=upbuy_new, down_buy=downbuy_new,
-                                                    up_sell=upsell_new, down_sell=downsell_new))
+                tmp_strategy = Strategy(cap_init_list[counter], mount_init=mount_init_list[counter],
+                                        win=win, std_n=n_std, name=None,
+                                        up_buy=upbuy_new, down_buy=downbuy_new,
+                                        up_sell=upsell_new, down_sell=downsell_new)
+                self.player_classes.append(tmp_strategy)
+                counter += 1
 
-    def generate_bar(self):
-        bs = SimuStrategy(capital_init, mount_init=0.0, win=win,
-                          up_sell=up_sell, down_sell=down_sell,
-                          up_buy=up_buy, down_buy=down_buy)
-        for id1, price_new in enumerate(datas):
-            # 1. 关键更新
-            pass_sig = bs.hung_mount(self.price_mesh, self.price_json)
-            pass_sig = bs.done_mount(self.price_mesh, self.price_json)
-            pass_sig = bs.update_wealth([price_new])
-            if not pass_sig:
-                wealths.append(bs.wealth_new)
-                keepcap.append(bs.capital_new / bs.wealth_new)
-            # 2. 策略只根据索引的状态 关闭
-            bs.update_check_reset()
-        tlen = len(datas)
-        ratio_all = bs.wealth_new / capital_init
-        ratio_day = pow(ratio_all, 1.0 / tlen)
-
+    def generate_bars(self):
+        # 返回整体列表
         bar_list = []
         for i in range(self.bar_n):
-            self.price_old = self.price_new
-            self.price_new = self.price_old * self._random()  # 随机扰动值
-            self.price_new = 1 + (self.price_new - 1) * self.back_force  # 恢复价格力
-            bar_list.append(self.price_new)
+            price_new, mount_new = self.generate_bar()
+            bar_list.append([price_new, mount_new])
         return bar_list
+
+    def generate_bar(self):
+        # 0. 单天更新的逻辑
+        # 1. player 互相作用
+        for id1, player_class in enumerate(self.player_classes):
+            # 1. 关键更新
+            pass_sig = player_class.hung_mount(self.price_mesh, self.price_json)
+            pass_sig = player_class.done_mount(self.price_mesh, self.price_json)
+            pass_sig = player_class.update_wealth([price_new])
+            # 2. 策略只根据索引的状态 关闭
+            self.update_check_reset()
+        # 2. 价格随机扰动更新
+        self.price_old = self.price_new
+        self.price_new = self.price_old * self._random()  # 随机扰动值
+        self.price_new = 1 + (self.price_new - 1) * self.back_force  # 恢复价格力
+        return self.price_new, self.mount_new
 
 
 def generate_simucurve(n, plotsig=False):
     lc = LiveCurve(n)
-    bar_list = lc.generate_bar()
+    bar_list = lc.generate_bars()
     if plotsig:
         x = list(range(n))
         titles = ["simu curve"]
