@@ -491,7 +491,7 @@ class SimuStrategy(object):
 
     # 下面是环境互动的函数
     def update_hung(self, env_cls):
-        # 根据策略 悬挂待 落实 个体
+        # 根据策略 悬挂待 落实 个体, 包含起始 旧值更新
         if env_cls.price_new is None:
             return True
         self.price_old = self.price_new
@@ -537,6 +537,8 @@ class SimuStrategy(object):
 
     def update_mount(self, env_cls):
         # 1. 算老值
+        env_cls.hung_price_up_json
+        env_cls.hung_price_dn_json
         self.current_id += 1
         if newdata[0] is None:
             return True
@@ -862,15 +864,15 @@ class LiveCurve(object):
                 self.player_classes.append(tmp_strategy)
                 counter += 1
 
-    def generate_bars(self):
+    def generate_1bars(self):
         # 返回整体列表
         bar_list = []
         for i in range(self.bar_n):
-            price_new, mount_new = self.generate_bar()
+            price_new, mount_new = self.generate_1bar()
             bar_list.append([price_new, mount_new])
         return bar_list
 
-    def generate_bar(self):
+    def generate_1bar(self):
         # 0. 单天更新的逻辑
         self.price_old = self.price_new
         self.mount_old = self.mount_new
@@ -914,7 +916,7 @@ class LiveCurve(object):
 
 def generate_simucurve(n, plotsig=False):
     lc = LiveCurve(n)
-    bar_list = lc.generate_bars()
+    bar_list = lc.generate_1bars()
     if plotsig:
         x = list(range(n))
         titles = ["simu curve"]
