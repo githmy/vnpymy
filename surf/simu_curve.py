@@ -313,13 +313,21 @@ def generate_curve(n, m, beta, scale=0.01, plotsig=False):
 
 
 class SimuStrategy(object):
-    def __init__(self, cap_init, mount_init=0.0, win=10,
+    def __init__(self, cap_init, mount_init=0.0, win=10, std_n=100, name=None,
                  up_sell=[0.5], down_sell=[-0.1],
-                 up_buy=[0.1, 0.2], down_buy=[-0.5]):
-        self.strategy_name = "turtle"
+                 up_buy=[0.1, 0.2], down_buy=[-0.5], price_mesh=[]):
+        t_up_sell = "_".join(map(str, up_sell))
+        t_down_sell = "_".join(map(str, down_sell))
+        t_up_buy = "_".join(map(str, up_buy))
+        t_down_buy = "_".join(map(str, down_buy))
+        self.strategy_name = "turtle-upsell{}-downsell{}-upbuy{}-downbuy{}-win{}".format(
+            t_up_sell, t_down_sell, t_up_buy, t_down_buy, str(win)) if name is None else name
         self.capital_init = cap_init
         self.capital_old = cap_init
         self.capital_new = cap_init
+        price_init = 1.0
+        self.price_new = price_init
+        self.price_old = price_init
         self.mount_new = mount_init
         self.mount_old = mount_init
         self.wealth_new = cap_init
@@ -334,9 +342,16 @@ class SimuStrategy(object):
         self.up_buy_length = len(self.up_buy)
         self.down_buy_length = len(self.down_buy)
         self.win = win
+        self.std_n = std_n
         self.dq = deque(maxlen=self.win)
+        self.dqm = deque(maxlen=self.win)
         self.olddata = []
         self.newdata = []
+        self.deposi_hung_up_1json = {i1: 0.0 for i1 in price_mesh}
+        self.deposi_hung_dn_1json = {i1: 0.0 for i1 in price_mesh}
+        self.tmp_hung_up_1json = {i1: 0.0 for i1 in price_mesh}
+        self.tmp_hung_dn_1json = {i1: 0.0 for i1 in price_mesh}
+
         self._trade_sig_reset()
 
     def _trade_sig_reset(self):
@@ -479,19 +494,70 @@ class SimuStrategy(object):
         if self.new_trade_down_sell_index + 1 == self.down_sell_length or self.new_trade_up_sell_index + 1 == self.up_sell_length:
             self._trade_sig_reset()
 
-    def update_wealth(self, newdata):
+    # 下面是环境互动的函数
+    def update_hung(self, env_cls):
+        # 根据策略 悬挂待 落实 个体, 包含起始 旧值更新
+        if env_cls.price_new is None:
+            return True
+        self.price_old = self.price_new
+        self.mount_old = self.mount_new
+        self.price_new = env_cls.price_new
+        self.mount_new = env_cls.mount_new
+        self.capital_old = self.capital_new
+        if len(self.dq) == 0:
+            self.wealth_old = self.capital_old
+        else:
+            self.wealth_old = self.capital_old + self.dq[-1] * self.mount_old
+        self.dq.append(env_cls.price_new)
+        self.dqm.append(env_cls.mount_new)
+        self.wealth_new = self.capital_old + self.dq[-1] * self.mount_old
+        if len(self.dq) < self.win:
+            return True
+        # 2. 算新标记
+        maxdq = max(list(self.dq)[:-1])
+        if self.price_in_anchor is None and self.dq[-1] > maxdq:
+            # 初始设置，记录策略标记
+            maxdq = max(list(self.dq)[:-1])
+            self.price_in_anchor = maxdq
+            self.float_in_ratio = self.dq[-1] / self.price_in_anchor - 1
+            self.price_out_anchor = self.dq[-1]
+            self.float_out_ratio = 0.0
+            self.turtle_sig = True
+        if self.turtle_sig:
+            # 更新 上下锚点
+            self._update_anchor()
+            # 有了anchor未必达标最小阈值
+            # 加仓, 上向 期上 买入
+            self.get_upbuy_index()
+            # 止赢, 上向 期下 卖出
+            self.get_upsell_index()
+            # 止损, 下向 期下 卖出
+            self.get_downsell_index()
+            self.get_downbuy_index()
+            # 3. 策略标记缩并
+            self._shrink_index()
+            # 5. 策略操作更新
+            hung_up_json, hung_dn_json = self.do_hung(env_cls)
+            return self.tmp_hung_up_1json, self.tmp_hung_dn_1json
+
+    def depos_hung(self, env_cls):
         # 1. 算老值
         self.current_id += 1
         if newdata[0] is None:
             return True
         self.olddata = self.newdata
-        self.capital_old = self.capital_new
+        self.newdata = newdata
+        self.price_old = self.price_new
         self.mount_old = self.mount_new
+        self.price_new = self.newdata[0]
+        self.mount_new = self.newdata[-1]
+        self.capital_old = self.capital_new
         if len(self.dq) == 0:
             self.wealth_old = self.capital_old
         else:
             self.wealth_old = self.capital_old + self.dq[-1] * self.mount_old
         self.dq.append(newdata[0])
+        self.dqm.append(newdata[-1])
         self.wealth_new = self.capital_old + self.dq[-1] * self.mount_old
         if len(self.dq) < self.win:
             return True
@@ -543,6 +609,103 @@ class SimuStrategy(object):
         # self.capital_new = cap_init
         # self.mount_new = mount_init
 
+    def update_wealth(self, newdata):
+        # 1. 算老值
+        self.current_id += 1
+        if newdata[0] is None:
+            return True
+        self.olddata = self.newdata
+        self.newdata = newdata
+        self.price_old = self.price_new
+        self.mount_old = self.mount_new
+        self.price_new = self.newdata[0]
+        self.mount_new = self.newdata[-1]
+        self.capital_old = self.capital_new
+        if len(self.dq) == 0:
+            self.wealth_old = self.capital_old
+        else:
+            self.wealth_old = self.capital_old + self.dq[-1] * self.mount_old
+        self.dq.append(newdata[0])
+        self.dqm.append(newdata[-1])
+        self.wealth_new = self.capital_old + self.dq[-1] * self.mount_old
+        if len(self.dq) < self.win:
+            return True
+        # 2. 算新标记
+        maxdq = max(list(self.dq)[:-1])
+        if self.price_in_anchor is None and self.dq[-1] > maxdq:
+            # 初始设置，记录策略标记
+            maxdq = max(list(self.dq)[:-1])
+            self.price_in_anchor = maxdq
+            self.float_in_ratio = self.dq[-1] / self.price_in_anchor - 1
+            self.price_out_anchor = self.dq[-1]
+            self.float_out_ratio = 0.0
+            self.turtle_sig = True
+        if self.turtle_sig:
+            # 更新 上下锚点
+            self._update_anchor()
+            # 有了anchor未必达标最小阈值
+            # 加仓, 上向 期上 买入
+            # self.new_trade_up_buy_index = self._get_upbuy_index(self.new_trade_up_buy_index)
+            self.get_upbuy_index()
+            # 止赢, 上向 期下 卖出
+            # self.new_trade_up_sell_index = self._get_upsell_index(self.new_trade_up_sell_index)
+            self.get_upsell_index()
+            # 止损, 下向 期下 卖出
+            # self.new_trade_down_sell_index = self._get_downsell_index(self.new_trade_down_sell_index)
+            self.get_downsell_index()
+            self.get_downbuy_index()
+            # 3. 策略标记缩并
+            self._shrink_index()
+            # if self.turtle_sig:
+            # if False:
+            #     print("current_id", self.current_id)
+            #     print(self.old_touch_up_buy_index, self.old_touch_up_sell_index, self.old_touch_down_sell_index,
+            #           self.old_touch_down_buy_index)
+            #     print(self.new_touch_up_buy_index, self.new_touch_up_sell_index, self.new_touch_down_sell_index,
+            #           self.new_touch_down_buy_index)
+            #     print(self.old_trade_up_buy_index, self.old_trade_up_sell_index, self.old_trade_down_sell_index,
+            #           self.old_trade_down_buy_index)
+            #     print(self.new_trade_up_buy_index, self.new_trade_up_sell_index, self.new_trade_down_sell_index,
+            #           self.new_trade_down_buy_index)
+            #     print(self.dq[-1], self.price_in_anchor, self.price_out_anchor, self.float_in_ratio,
+            #           self.float_out_ratio)
+            # 5. 策略操作更新
+            self.do_strategy()
+        # 4. 算总额
+        self.newdata = newdata
+        # print("current_id", self.current_id)
+        # print(self.wealth_new / self.capital_init, self.mount_new, newdata)
+        # self.capital_new = cap_init
+        # self.mount_new = mount_init
+
+    def do_hung(self, env_cls):
+        # 止损最高优先级
+        if self.new_trade_down_sell_index > -1:
+            # 判断价位分布 百分比
+            for i1key, i1item in self.tmp_hung_up_1json:
+                self.tmp_hung_up_1json[i1key] += i1item
+            for i1key, i1item in self.tmp_hung_dn_1json:
+                self.tmp_hung_dn_1json[i1key] += i1item
+            # 保持资金百分比
+            self.capital_new = self.wealth_new * self.new_down_sell_ratio
+            self.mount_new = self.wealth_new * (1 - self.new_down_sell_ratio) / self.dq[-1]
+        elif self.new_trade_up_sell_index > -1:
+            # 预防次等优先级, 获利卖
+            self.capital_new = self.wealth_new * self.new_up_sell_ratio
+            self.mount_new = self.wealth_new * (1 - self.new_up_sell_ratio) / self.dq[-1]
+        elif self.new_trade_up_buy_index > -1:
+            # 交易最低优先级, 加仓位
+            self.capital_new = self.wealth_new * self.new_up_buy_ratio
+            self.mount_new = self.wealth_new * (1 - self.new_up_buy_ratio) / self.dq[-1]
+        elif self.new_trade_down_buy_index > -1:
+            # 交易最低优先级, 加仓位
+            self.capital_new = self.wealth_new * self.new_down_buy_ratio
+            self.mount_new = self.wealth_new * (1 - self.new_down_buy_ratio) / self.dq[-1]
+        else:
+            self.capital_new = self.capital_old
+            self.mount_new = self.mount_new
+        return self.tmp_hung_up_1json, self.tmp_hung_dn_1json
+
     def do_strategy(self):
         # 止损最高优先级
         if self.new_trade_down_sell_index > -1:
@@ -565,40 +728,30 @@ class SimuStrategy(object):
             self.capital_new = self.capital_old
             self.mount_new = self.mount_new
 
-    def hung_mount(self, price_mesh, price_json):
-        # 悬挂待 落实
-        price_mesh
-        return price_mesh
-
-    def done_mount(self, price_mesh, price_json):
+    def done_mount(self, env_cls):
         # 落实 数量
-        price_mesh
+        env_cls
+        return price_mesh
+
+    def captial_in(self):
+        # 注入 或 分红
+        pass
+
+    def captial_out(self):
+        # tax out 或 退出
+        pass
+
+    def stratege_mount(self):
+        pass
+
+    def back_price_mesh(self, price_mesh):
         return price_mesh
 
 
-class Race(object):
-    def __init__(self, upbuy, downbuy, upsell, downsell, n_std, price_std, player_n):
-        self.upbuy = upbuy
-        self.downbuy = downbuy
-        self.upsell = upsell
-        self.downsell = downsell
-        self.n_std = n_std
-        self.price_std = price_std
-        self.active_intent = 0.9
-        self.follow_intent = 0.1
-        self.player_n = player_n
-
-    def generate_player(self):
-        player_list = []
-        for i1 in self.player_n:
-            player_list.append(Player())
-        return player_list
-
-
-class Player(Race):
+class Player():
     # 一个代表一个代表性的微群体，微群体构成群体，群体构成等级
     def __init__(self, upbuy, downbuy, upsell, downsell, n_std, price_std, player_n, len_price_mesh):
-        super(Player, self).__init__(*[])
+        # super(Player, self).__init__(*[])
         # 变前的量
         self.mount_mesh_old = [0.0] * len_price_mesh
         # 当前变动盘口
@@ -642,32 +795,43 @@ class LiveCurve(object):
             tprice_mesh.append(tprice_mesh[-1] / 1.001)
         self.price_mesh = list(reversed(tprice_mesh[1:])) + self.price_mesh
         self.price_json = {i1: 0.0 for i1 in self.price_mesh}
+        self.depos_hung_up_json = {}
+        self.depos_hung_dn_json = {}
+        self.tmp_hung_up_json = {}
+        self.tmp_hung_dn_json = {}
         self.price_mesh_index = -1
         # 2. 规律参数
-        self.back_force = 0.9999
+        # self.back_force = 0.9999
+        self.back_force = 0.9999999999
         # 3. 曲线参数
         self.rise_cost = 0.8
         # 4. bar 指标
         self.price_old = 1.0
         self.price_new = 1.0
+        self.mount_new = 0.0
         # 5. 周期性外部条件
         # 活跃度
         self.disturb_std = 0.004
         self.disturb_cut = 0.01
         # 6. 个体参数
         self.race_n = 5
+        # 添加是，先添加主动者，后添加从动者
         self.player_list = []
-        #  upbuy, downbuy, upsell, downsell, n_std, price_std, player_n
-        upbuy = [0.01]
+        # SimuStrategy, win, upbuy, downbuy, upsell, downsell, n_std, index_std, player_n
+        self.global_cap_init = 1e10
+        self.global_mount_init = 1e10
+        win = 10
+        upbuy = [0.01, 0.03]
         downbuy = [-0.3]
         upsell = [0.1]
         downsell = [-0.01]
         # n代表最当前价位，小单位的个数
         n_std = 100
-        index_std = 0.005
+        index_std = 0.05
         # 群体随机目标点位的个数
         player_n = 5
-        self.player_list.append([SimuStrategy, upbuy, downbuy, upsell, downsell, n_std, index_std, player_n])
+        self.player_list.append(
+            [SimuStrategy, win, upbuy, downbuy, upsell, downsell, n_std, index_std, player_n, self.price_mesh])
         upbuy = [0.02]
         downbuy = [-0.3]
         upsell = [0.1]
@@ -675,54 +839,96 @@ class LiveCurve(object):
         n_std = 100
         index_std = 0.005
         player_n = 5
-        self.player_list.append([SimuStrategy, upbuy, downbuy, upsell, downsell, n_std, index_std, player_n])
-        print(self.player_list)
+        self.player_list.append(
+            [SimuStrategy, win, upbuy, downbuy, upsell, downsell, n_std, index_std, player_n, self.price_mesh])
+        # player_classes 是 player_list 的展开
         self.player_classes = []
-        self.get_current_players()
+        # 7. 初始化确保每个类的数量和一样
+        self.player_num = sum([i1[-1] for i1 in self.player_list])
+        self.init_current_players()
 
     def _random(self):
         v = random.normalvariate(1, self.disturb_std)
         if v > 1. + self.disturb_cut:
             return 1.
-        elif v < 1. - self.disturb_cut:
+        if v < 1. - self.disturb_cut:
             return 1.
-        else:
-            return v
+        return v
 
-    def get_current_players(self):
-        for i1 in self.player_list:
-            self.player_classes.append([])
+    def init_player_cap_mount(self, player_num):
+        # captical mount 均分
+        return [self.global_cap_init / player_num] * player_num, [self.global_mount_init / player_num] * player_num,
 
-    def generate_bar(self):
-        bs = SimuStrategy(capital_init, mount_init=0.0, win=win,
-                          up_sell=up_sell, down_sell=down_sell,
-                          up_buy=up_buy, down_buy=down_buy)
-        for id1, price_new in enumerate(datas):
-            # 1. 关键更新
-            pass_sig = bs.hung_mount(self.price_mesh, self.price_json)
-            pass_sig = bs.done_mount(self.price_mesh, self.price_json)
-            pass_sig = bs.update_wealth([price_new])
-            if not pass_sig:
-                wealths.append(bs.wealth_new)
-                keepcap.append(bs.capital_new / bs.wealth_new)
-            # 2. 策略只根据索引的状态 关闭
-            bs.update_check_reset()
-        tlen = len(datas)
-        ratio_all = bs.wealth_new / capital_init
-        ratio_day = pow(ratio_all, 1.0 / tlen)
+    def init_current_players(self):
+        # SimuStrategy, upbuy, downbuy, upsell, downsell, n_std, index_std, player_n
+        cap_init_list, mount_init_list = self.init_player_cap_mount(self.player_num)
+        counter = 0
+        for Strategy, win, upbuy, downbuy, upsell, downsell, n_std, index_std, player_n in self.player_list:
+            for id2 in range(player_n):
+                upbuy_new = [ub * random.uniform(1 - index_std, 1 + index_std) for ub in upbuy]
+                downbuy_new = [ub * random.uniform(1 - index_std, 1 + index_std) for ub in downbuy]
+                upsell_new = [ub * random.uniform(1 - index_std, 1 + index_std) for ub in upsell]
+                downsell_new = [ub * random.uniform(1 - index_std, 1 + index_std) for ub in downsell]
+                tmp_strategy = Strategy(cap_init_list[counter], mount_init=mount_init_list[counter],
+                                        win=win, std_n=n_std, name=None,
+                                        up_buy=upbuy_new, down_buy=downbuy_new,
+                                        up_sell=upsell_new, down_sell=downsell_new)
+                self.player_classes.append(tmp_strategy)
+                counter += 1
 
+    def generate_1bars(self):
+        # 返回整体列表
         bar_list = []
         for i in range(self.bar_n):
-            self.price_old = self.price_new
-            self.price_new = self.price_old * self._random()  # 随机扰动值
-            self.price_new = 1 + (self.price_new - 1) * self.back_force  # 恢复价格力
-            bar_list.append(self.price_new)
+            price_new, mount_new = self.generate_1bar()
+            bar_list.append([price_new, mount_new])
         return bar_list
+
+    def generate_1bar(self):
+        # 0. 单天更新的逻辑
+        self.price_old = self.price_new
+        self.mount_old = self.mount_new
+        # 1. 价格随机扰动更新
+        self.price_new = self.price_new * self._random()  # 随机扰动值
+        self.price_new = 1 + (self.price_new - 1) * self.back_force  # 恢复价格力
+        # 2. player 互相作用
+        self.tmp_hung_up_json = {i1: 0.0 for i1 in self.price_mesh}
+        self.tmp_hung_dn_json = {i1: 0.0 for i1 in self.price_mesh}
+        hung_json_list = []
+        for player_class in self.player_classes:
+            tmp_hung_up_json, tmp_hung_dn_json = player_class.update_hung(self)
+            hung_json_list.append([tmp_hung_up_json, tmp_hung_dn_json])
+            self.tmp_hung_up_json = {i1key: tmp_hung_up_json[i1key] + i1item for i1key, i1item in tmp_hung_up_json}
+            self.tmp_hung_dn_json = {i1key: tmp_hung_dn_json[i1key] + i1item for i1key, i1item in tmp_hung_dn_json}
+        # 每个mesh求和 todo:
+        for player_class in self.player_classes:
+            hung_json = player_class.depos_hung(self)
+            hung_json_list.append(hung_json)
+        self.price_json = {i1: 0.0 for i1 in self.price_mesh}
+        # 3. 按挂盘，撮合成交，更新点位和mount量
+        self.deal_orders(hung_json_list)
+        return self.price_new, self.mount_new
+
+    def deal_orders(self, hung_json_list):
+        # 按挂盘，撮合成交，更新点位和mount量
+        for id1, player_class in enumerate(self.player_classes):
+            self.price_mesh, self.price_json = self.deal_reset()
+            done_json = player_class.done_mount(self)
+            pass_sig = player_class.update_wealth([1])
+        # 3. 策略只根据索引的状态 关闭
+        self.update_check_reset()
+
+    def deal_reset(self):
+        price_new, mount_new = None, None
+        return price_new, mount_new
+
+    def update_check_reset(self):
+        pass
 
 
 def generate_simucurve(n, plotsig=False):
     lc = LiveCurve(n)
-    bar_list = lc.generate_bar()
+    bar_list = lc.generate_1bars()
     if plotsig:
         x = list(range(n))
         titles = ["simu curve"]
@@ -981,7 +1187,7 @@ def main():
     np.random.seed(113)
     # n, m, beta = 10000000, 1, 1.8
     # n, m, beta = 10, 1, 1.8
-    n, m, beta = 1000, 1, 1.8
+    n, m, beta = 100, 1, 1.8
     # datas = generate_curve(n, m, beta, scale=0.01, plotsig=True)
     # datas = generate_curve(n, m, beta, scale=0.01, plotsig=False)
     random.seed(333)
