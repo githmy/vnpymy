@@ -288,6 +288,96 @@ def levy_flight(n, m, beta):
     return steps
 
 
+def generate_BMcurve1(n, T, plotsig=True):
+    # 公式生成
+    t = np.linspace(0, T, n + 1)
+    dt = T / n
+    Bt = np.zeros(n + 1)
+    dB = np.random.randn(n) * np.sqrt(dt)
+    Bt[1:n + 1] = np.cumsum(dB)
+    if plotsig:
+        # plt.plot(t, Bt)
+        # plt.show()
+        ymin = np.min(Bt)
+        ymax = np.max(Bt)
+        for i in range(n):
+            plt.plot(t[i:i + 2], Bt[i:i + 2], 'b')
+            plt.xlim(0, T)
+            plt.ylim(ymin, ymax)
+            plt.pause(0.0001)
+        plt.show()
+    return Bt
+
+
+def generate_BMcurve2(n, T, plotsig=True):
+    # 2维 图生成
+    t = np.linspace(0, T, n + 1)
+    dt = T / n
+    Bt = np.zeros((n + 1, 2))
+    dB1 = np.random.randn(n) * np.sqrt(dt)
+    Bt[1:n + 1, 0] = np.cumsum(dB1)
+    dB2 = np.random.randn(n) * np.sqrt(dt)
+    Bt[1:n + 1, 1] = np.cumsum(dB2)
+
+    xmin = np.min(Bt[:, 0])
+    xmax = np.max(Bt[:, 0])
+    ymin = np.min(Bt[:, 1])
+    ymax = np.max(Bt[:, 1])
+
+    if plotsig:
+        for i in range(n):
+            plt.plot(Bt[i:i + 2, 0], Bt[i:i + 2, 1], 'b')
+            plt.xlim(xmin, xmax)
+            plt.ylim(ymin, ymax)
+            plt.pause(0.0001)
+        plt.show()
+
+
+def generate_BMcurve3(power, T, plotsig=True):
+    # 插值
+    def interpolate(t1, t2, a, b, t_):
+        mu = a + (b - a) * (t_ - t1) / (t2 - t1)
+        sigma = np.sqrt((t_ - t1) * (t2 - t_) / (t2 - t1))
+        z = np.random.randn(1) * sigma + mu
+        return z
+
+    n = 0
+    t = np.linspace(0, T, 2 ** n + 1)
+    Bt0 = np.zeros(2 ** n + 1)
+    Bt0[2 ** n] = np.random.randn(1) * np.sqrt(T)
+    if plotsig:
+        plt.show()
+        plt.plot(t, Bt0)
+        plt.pause(1)
+        for i in range(power):
+            n += 1
+            Bt = np.zeros(2 ** n + 1)
+            t = np.linspace(0, T, 2 ** n + 1)
+            Bt[0:2 ** n + 1:2] = Bt0
+            for j in range(1, 2 ** n, 2):
+                Bt[j] = interpolate(t[j - 1], t[j + 1], Bt[j - 1], Bt[j + 1], t[j])
+
+            plt.clf()
+            plt.plot(t, Bt)
+            plt.pause(1)
+            Bt0 = Bt
+
+        plt.show()
+
+
+def generate_BMcurve4(n, T, plotsig=True):
+    # 多条布朗线
+    m = 5
+    t = np.linspace(0, T, n + 1)
+    dt = T / n
+    Bt = np.zeros((n + 1, m))
+    dB = np.random.randn(n, m) * np.sqrt(dt)
+    Bt[1:n + 1, :] = np.cumsum(dB, axis=0)
+    if plotsig:
+        plt.plot(t, Bt)
+        plt.show()
+
+
 def generate_curve(n, m, beta, scale=0.01, plotsig=False):
     """根据levy步长，生成曲线"""
     steps = levy_flight(n, m, beta)
@@ -326,6 +416,9 @@ class SimuStrategy(object):
         self.capital_old = cap_init
         self.capital_new = cap_init
         price_init = 1.0
+        self.fuse_amp = 0.1
+        self.price_mesh = price_mesh
+        self.lenth_mesh = len(self.price_mesh)
         self.price_new = price_init
         self.price_old = price_init
         self.mount_new = mount_init
@@ -347,10 +440,10 @@ class SimuStrategy(object):
         self.dqm = deque(maxlen=self.win)
         self.olddata = []
         self.newdata = []
-        self.deposi_hung_up_1json = {i1: 0.0 for i1 in price_mesh}
-        self.deposi_hung_dn_1json = {i1: 0.0 for i1 in price_mesh}
-        self.tmp_hung_up_1json = {i1: 0.0 for i1 in price_mesh}
-        self.tmp_hung_dn_1json = {i1: 0.0 for i1 in price_mesh}
+        self.deposi_hung_up_1json = {i1: 0.0 for i1 in self.price_mesh}
+        self.deposi_hung_dn_1json = {i1: 0.0 for i1 in self.price_mesh}
+        self.tmp_hung_up_1json = {i1: 0.0 for i1 in self.price_mesh}
+        self.tmp_hung_dn_1json = {i1: 0.0 for i1 in self.price_mesh}
 
         self._trade_sig_reset()
 
@@ -527,17 +620,27 @@ class SimuStrategy(object):
             # 更新 上下锚点
             self._update_anchor()
             # 有了anchor未必达标最小阈值
-            # 加仓, 上向 期上 买入
-            self.get_upbuy_index()
-            # 止赢, 上向 期下 卖出
-            self.get_upsell_index()
-            # 止损, 下向 期下 卖出
-            self.get_downsell_index()
-            self.get_downbuy_index()
-            # 3. 策略标记缩并
-            self._shrink_index()
-            # 5. 策略操作更新
-            hung_up_json, hung_dn_json = self.do_hung(env_cls)
+            cent_index = self.price_mesh.index(self.price_new)
+            low_index = max([0, int(cent_index * (1 - self.fuse_amp))])
+            hig_index = min([int(cent_index * (1 + self.fuse_amp)), self.lenth_mesh])
+            price_mountlist = self.price_mesh[low_index:hig_index]
+            self.tmp_hung_up_1json = {i1: 0.0 for i1 in price_mountlist}
+            self.tmp_hung_dn_1json = {i1: 0.0 for i1 in price_mountlist}
+            for each_mount in price_mountlist:
+                self.float_in_ratio = each_mount / self.price_in_anchor - 1
+                self.price_out_anchor = each_mount
+                self.float_out_ratio = 0.0
+                # 加仓, 上向 期上 买入
+                self.get_upbuy_index()
+                # 止赢, 上向 期下 卖出
+                self.get_upsell_index()
+                # 止损, 下向 期下 卖出
+                self.get_downsell_index()
+                self.get_downbuy_index()
+                # 3. 策略标记缩并
+                self._shrink_index()
+                # 5. 策略操作更新
+                hung_up_json, hung_dn_json = self.do_hung(env_cls)
             return self.tmp_hung_up_1json, self.tmp_hung_dn_1json
 
     def depos_hung(self, env_cls):
@@ -1185,13 +1288,21 @@ def main():
     """
     # 1. 莱维曲线 参数提取，周期曲线复制
     np.random.seed(113)
+    random.seed(333)
     # n, m, beta = 10000000, 1, 1.8
     # n, m, beta = 10, 1, 1.8
     n, m, beta = 100, 1, 1.8
     # datas = generate_curve(n, m, beta, scale=0.01, plotsig=True)
     # datas = generate_curve(n, m, beta, scale=0.01, plotsig=False)
-    random.seed(333)
-    datas = generate_simucurve(n, plotsig=True)
+    # # 布朗移动
+    # T = 0.25
+    # n = 100
+    # # datas = generate_BMcurve1(n, T, plotsig=True)
+    # # datas = generate_BMcurve2(n, T, plotsig=True)
+    # # datas = generate_BMcurve4(n, T, plotsig=True)
+    # # T = 2
+    # # power = 10
+    # # datas = generate_BMcurve3(power, T, plotsig=True)
     # datas = generate_simucurve(n, plotsig=False)
     print(datas, datas[-1])
     exit()
