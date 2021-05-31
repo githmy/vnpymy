@@ -272,8 +272,8 @@ def option_pricing_discrete(price_now, price_force, rise_up, rise_dn, rate, t):
         return option4fall_europe
 
 
-def bs_option(S, K, T, r, q, sigma, option='call'):
-    """
+def black_scholes_option(S, K, T, r, q, sigma, option='call'):
+    """https://zhuanlan.zhihu.com/p/147007821
     S: spot price
     K: strike price
     T: time to maturity
