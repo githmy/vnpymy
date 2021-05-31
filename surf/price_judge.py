@@ -1,7 +1,9 @@
+import numpy as np
+from scipy.stats import norm
 import math
 
 
-def option_pricing(price_now, price_force, rise_up, rise_dn, rate, t):
+def option_pricing_discrete(price_now, price_force, rise_up, rise_dn, rate, t):
     """
     根据当前price_now，执行价格，涨幅, 跌幅，利率，时间差 定出期权价格
     a = rise_up - 1 
@@ -41,6 +43,26 @@ def option_pricing(price_now, price_force, rise_up, rise_dn, rate, t):
     elif fall_europe:
         option4fall_europe = None
         return option4fall_europe
+
+
+def bs_option(S, K, T, r, q, sigma, option='call'):
+    """
+    S: spot price
+    K: strike price
+    T: time to maturity
+    r: risk-free interest rate
+    q: rate of continuous dividend
+    sigma: standard deviation of price of underlying asset  
+    """
+    d1 = (np.log(S / K) + (r - q + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
+    d2 = (np.log(S / K) + (r - q - 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
+    if option == 'call':
+        p = (S * np.exp(-q * T) * norm.cdf(d1, 0.0, 1.0) - K * np.exp(-r * T) * norm.cdf(d2, 0.0, 1.0))
+    elif option == 'put':
+        p = (K * np.exp(-r * T) * norm.cdf(-d2, 0.0, 1.0) - S * np.exp(-q * T) * norm.cdf(-d1, 0.0, 1.0))
+    else:
+        return None
+    return p
 
 
 def main():
