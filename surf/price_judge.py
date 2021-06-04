@@ -1,11 +1,22 @@
 import numpy as np
-from scipy.stats import norm
 import math
-import numpy as np
 import pandas as pd
+from scipy.stats import norm
 from scipy import stats
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import plot, subplot, show, stem, title
+
+"""
+data_rules：数据分析规律
+   bar_static_profit: log收益统计，分布
+   bar_static_profit_is_normal: log收益是否正态分布
+   bar_static_profit_mu_std_evolution: 均值方差变动演化
+   
+option_pricing_discrete：离散定价公式
+
+black_scholes_option：期权定价公式
+
+"""
 
 
 class data_rules():
@@ -33,53 +44,6 @@ class data_rules():
         # 3. 统计收益率分布
         plt.figure(2)
         plt.hist(ret, 100)
-        plt.show()
-
-    def bar_static_profit_evolution(self):
-        """收益率 均值标准差 演变，是否稳定？ 答不稳定"""
-        data = pd.read_csv("../data/TSLA.csv")  # DataFrame
-        days = 252
-        close = data["Close"]
-        # print(close)
-        close = np.array(close)
-        n = len(close)
-        ret = np.log(close[1:n] / close[0:n - 1])
-        n = len(ret)
-        mu = np.mean(ret)
-        sigma2 = np.sum((ret - mu) ** 2) / (n - 1)
-        sigma = math.sqrt(sigma2)
-        sigma_pd = pd.Series.std(pd.Series(ret))
-        print(sigma, sigma_pd)
-        # sigma_np = np.std(ret)
-        # print(sigma, sigma_pd, sigma_np)
-        print('mu:', mu)
-        print('sigma:', sigma)
-        print('---------------------------------------------------------------------------------------------')
-        print('mu*days:', mu * days)
-        print('sigma*sqrt(days):', sigma * np.sqrt(days))
-        m = 30
-        num = int(n / m)
-        ret = ret[-num * m:-1]
-        MU = np.zeros(num)
-        SIGMA = np.zeros(num)
-        for i in range(num):
-            data0 = ret[i * m:(i + 1) * m]
-            MU[i] = np.mean(data0)
-            SIGMA[i] = pd.Series.std(pd.Series(data0))
-        print('---------------------------------------------------------------------------------------------')
-        print('MU:', MU)
-        print('SIGMA:', SIGMA)
-        MU *= days
-        SIGMA *= np.sqrt(days)
-        print('---------------------------------------------------------------------------------------------')
-        print('MU*days:', MU)
-        print('SIGMA*sqrt(days):', SIGMA)
-        plt.subplot(3, 1, 1)
-        plt.plot(ret)
-        plt.subplot(3, 1, 2)
-        plt.plot(MU)
-        plt.subplot(3, 1, 3)
-        plt.plot(SIGMA)
         plt.show()
 
     def bar_static_profit_is_normal(self):
@@ -140,21 +104,17 @@ class data_rules():
         plt.plot(SIGMA)
         plt.show()
 
-    def bar_static_profit_mu_std(self):
+    def bar_static_profit_mu_std_evolution(self):
+        """收益率 均值标准差 演变，是否稳定？ 答不稳定"""
+
         # 计算对数收益率
         def logreturn(x):
             n = len(x)
             ret = np.log(x[1:n] / x[0:n - 1])
             return ret
 
-        # 无偏估计
+        # 估计参数 无偏估计
         def estimate(ret):
-            mu = np.mean(ret)
-            sigma_pd = pd.Series.std(pd.Series(ret))
-            return mu, sigma_pd
-
-        # 估计参数
-        def estimate_MLE(ret):
             mu = np.mean(ret)
             sigma_pd = pd.Series.std(pd.Series(ret))
             return mu, sigma_pd
