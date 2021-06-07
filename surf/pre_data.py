@@ -13,17 +13,6 @@ from sklearn.model_selection._split import _BaseKFold, indexable, _num_samples
 from sklearn.utils.validation import _deprecate_positional_args
 
 
-def set_all_seeds(dataobj, seed):
-    np.random.seed(seed)
-    random.seed(seed)
-    tf.random.set_seed(seed)
-
-
-def pipe_pad(dataobj, paras={}):
-    outdata = dataobj
-    return outdata
-
-
 # 拆分时间序列的类
 class PurgedGroupTimeSeriesSplit(_BaseKFold):
     """Time Series cross-validator variant with non-overlapping groups.
@@ -365,18 +354,240 @@ class PurgedGroupTimeSeriesSplitStacking(_BaseKFold):
             test_array = test_array[test_group_gap:]
             yield [int(i) for i in train_array], [int(i) for i in val_array], [int(i) for i in test_array]
 
-def split_columns():
-    pass
 
-def split_rows():
-    pass
+def sharp_ratio(data, base_ratio=0.0):
+    num = len(data)
+    t_return = (data.shift(-1) - data) / data
+    std = t_return.std()
+    sharpratio = (t_return.mean() - base_ratio) * (np.sqrt(num)) / std
+    return sharpratio
+
+
+class Pre_data():
+    def __init__(self):
+        self.funcmap = {
+            "种子": self.set_all_seeds,
+            "填充": self.pipe_pad,
+            "取列": self.split_columns,
+            "取行": self.split_rows,
+        }
+
+    def set_all_seeds(self, dataobj, seed):
+        np.random.seed(seed)
+        random.seed(seed)
+        # tf.random.set_seed(seed)
+        return dataobj
+
+    def pipe_pad(self, dataobj, paras={}):
+        if paras["值"] is None:
+            if paras["方式"] == "向前":
+                # 再向上填充
+                dataobj.fillna(method='bfill', inplace=True)
+            elif paras["方式"] == "向后":
+                # 先向下填充
+                dataobj.fillna(method='ffill', inplace=True)
+            else:
+                raise Exception("paras error {}".format(paras))
+        else:
+            dataobj.fillna(value=paras["值"], inplace=True)
+        return dataobj
+
+    def split_columns(self, dataobj, paras):
+        return dataobj[paras]
+
+    def split_rows(self, dataobj, paras):
+        if isinstance(paras[0], str):
+            outdata = dataobj.loc[paras[0]:]
+        elif isinstance(paras[0], int):
+            outdata = dataobj.iloc[paras[0]:]
+        else:
+            raise Exception("type error {}".format(paras))
+        if isinstance(paras[1], str):
+            outdata = outdata.loc[:paras[1]]
+        elif isinstance(paras[1], int):
+            outdata = outdata.iloc[:paras[1]]
+        else:
+            raise Exception("type error {}".format(paras))
+        return outdata
+
+    def __call__(self, infiles, commands):
+        outdata = []
+        for infile in infiles:
+            pdobj = pd.read_csv(infile, header=0, encoding="utf8")
+            pdobj.set_index("date", inplace=True)
+            # 顺序处理
+            for command in commands:
+                tkey = list(command.keys())[0]
+                pdobj = self.funcmap[tkey](pdobj, command[tkey])
+            outdata.append(pdobj)
+        return outdata
+
+
+class SequenceChara():
+    def __init__(self):
+        self.funcmap = {
+            "均值n": self.mean_n,
+            "标准差n": self.std_n,
+            "涨幅比n": self.ratio_n,
+            "回撤n": self.draw_n,
+            "最涨n": self.maxrise_n,
+            "夏普n": self.sharp_n,
+        }
+
+    def mean_n(self, dataobj, n):
+        outdata = dataobj.rolling(window=n, center=False).mean()
+        return outdata
+
+    def std_n(self, dataobj, n):
+        outdata = dataobj.rolling(window=n, center=False).std()
+        return outdata
+
+    def ratio_n(self, dataobj, n):
+        outdata = dataobj["close"].rolling(window=n, center=False).apply(lambda x: x[-1] / x[0])
+        return outdata
+
+    def draw_n(self, dataobj, n):
+        pricepd = dataobj.iloc[:, 0]
+        maxfallret = pd.Series(index=pricepd.index)
+        for i in range(0, len(dataobj) - n):
+            tmpsec = pricepd[i + 1:i + n + 1]
+            tmpmax = pricepd[i]
+            tmpmin = pricepd[i]
+            tmpdrawdown = [1.0]
+            for t in range(0, n):
+                if tmpsec[t] > tmpmax:
+                    tmpmax = tmpsec[t]
+                    tmpdrawdown.append(tmpdrawdown[-1])
+                elif tmpsec[t] <= tmpmin:
+                    tmpmin = tmpsec[t]
+                    tmpdrawdown.append(tmpmin / tmpmax)
+                else:
+                    pass
+            maxfallret[i] = min(tmpdrawdown)
+        return maxfallret
+
+    def maxrise_n(self, dataobj, n):
+        pricepd = dataobj.iloc[:, 0]
+        maxraiseret = pd.Series(index=pricepd.index)
+        for i in range(0, len(dataobj) - n):
+            tmpsec = pricepd[i + 1:i + n + 1]
+            tmpmax = pricepd[i]
+            tmpmin = pricepd[i]
+            tmpdrawup = [1.0]
+            for t in range(0, n):
+                if tmpsec[t] > tmpmax:
+                    tmpmax = tmpsec[t]
+                    tmpdrawup.append(tmpmax / tmpmin)
+                elif tmpsec[t] <= tmpmin:
+                    tmpmin = tmpsec[t]
+                    tmpdrawup.append(tmpdrawup[-1])
+                else:
+                    pass
+            maxraiseret[i] = max(tmpdrawup)
+        return maxraiseret
+
+    def sharp_n(self, dataobj, n):
+        outdata = dataobj.rolling(window=n, center=False).apply(sharp_ratio)
+        return outdata
+
+    def __call__(self, infiles, commands):
+        outdata = []
+        for infile in infiles:
+            pdobj = pd.read_csv(infile, header=0, encoding="utf8")
+            pdobj.set_index("date", inplace=True)
+            # 并行处理
+            for command in commands:
+                tkey = list(command.keys())[0]
+                outobj = self.funcmap[tkey](pdobj, command[tkey])
+                outdata.append(outobj)
+        return outdata
+
+
+class CharaExtract():
+    def __init__(self):
+        self.funcmap = {
+            "profit_avelog": self.profit_avelog,
+            "胜率": self.win_ratio,
+            "回撤": self.draw_n,
+            "最涨": self.rise_n,
+            "夏普": self.sharp_n,
+        }
+
+    def profit_avelog(self, dataobj):
+        return np.log(dataobj.iloc[-1, 0] / dataobj.iloc[0, 0]) / len(dataobj)
+
+    def win_ratio(self, dataobj):
+        pricepd = dataobj.diff()
+        pricepd = np.array(pricepd.iloc[:, 0])
+        posinum = len(pricepd[pricepd > 0])
+        allnum = len(pricepd[~np.isnan(pricepd)])
+        return float(posinum) / allnum
+
+    def draw_n(self, dataobj):
+        pricepd = dataobj.iloc[:, 0]
+        n = len(dataobj)
+        tmpsec = pricepd[0:n]
+        tmpmax = pricepd[0]
+        tmpmin = pricepd[0]
+        tmpdrawdown = [1.0]
+        for i in range(1, n):
+            if tmpsec[i] > tmpmax:
+                tmpmax = tmpsec[i]
+                tmpdrawdown.append(tmpdrawdown[-1])
+            elif tmpsec[i] <= tmpmin:
+                tmpmin = tmpsec[i]
+                tmpdrawdown.append(tmpmin / tmpmax)
+            else:
+                pass
+        return min(tmpdrawdown)
+
+    def rise_n(self, dataobj):
+        pricepd = dataobj.iloc[:, 0]
+        n = len(dataobj)
+        tmpsec = pricepd[0:n]
+        tmpmax = pricepd[0]
+        tmpmin = pricepd[0]
+        tmpdrawup = [1.0]
+        for i in range(1, n):
+            if tmpsec[i] > tmpmax:
+                tmpmax = tmpsec[i]
+                tmpdrawup.append(tmpmax / tmpmin)
+            elif tmpsec[i] <= tmpmin:
+                tmpmin = tmpsec[i]
+                tmpdrawup.append(tmpdrawup[-1])
+            else:
+                pass
+        return max(tmpdrawup)
+
+    def sharp_n(self, dataobj):
+        tsr = sharp_ratio(dataobj)
+        return tsr[0]
+
+    def __call__(self, infiles, commands):
+        outdatas = [{"filename": [], i1: []} for i1 in commands]
+        for i1, command in enumerate(commands):
+            # 并行处理
+            for infile in infiles:
+                pdobj = pd.read_csv(infile, header=0, encoding="utf8")
+                pdobj.set_index("date", inplace=True)
+                pdobj = pdobj[[pdobj.columns[0]]]
+                outobj = self.funcmap[command](pdobj)
+                ttinfile = os.path.split(infile)[1]
+                outdatas[i1]["filename"].append(ttinfile)
+                outdatas[i1][command].append(outobj)
+        outdatapds = []
+        for i1 in outdatas:
+            tpd = pd.DataFrame(i1)
+            tpd.set_index("filename", inplace=True)
+            outdatapds.append(tpd)
+        return outdatapds
+
 
 pre_func = {
-    "输入数据": [],
-    "种子": set_all_seeds,
-    "填充": pipe_pad,
-    "前填充": None,
-    "后填充": None,
-    "拆列": split_columns,
-    "并列": split_rows,
+    # 返回的是列
+    "数据处理": Pre_data(),
+    # 返回的是列
+    "序列特征": SequenceChara(),
+    # 返回的是值，汇总成一个
+    "数据提取": CharaExtract(),
 }

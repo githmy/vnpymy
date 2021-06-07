@@ -1,4 +1,4 @@
-import os, json, time, re, codecs
+import os, json, time, re, codecs, glob
 # 1. 语法检测文件
 from surf.script_tab import keytab
 # 2. 数据清洗文件
@@ -18,7 +18,6 @@ import itertools
 mpl.rcParams[u'font.sans-serif'] = u'SimHei'
 mpl.rcParams[u'axes.unicode_minus'] = False
 
-baspath = os.path.join("..", "..", "nocode", "vnpy")
 projectpath = None
 
 # # 第一个是数据，第二个是处理参数
@@ -39,7 +38,6 @@ funcmap.update(train_func)
 funcmap.update(show_func)
 
 
-
 def check_keytab(injson):
     " 输入检测格式函数 "
     erromessage = None
@@ -54,6 +52,7 @@ def check_keytab(injson):
                     erromessage = f'{com} not in {keytab[com]}'
                     return erromessage
                 if not isinstance(vv, type(keytab[key][com])):
+                    # print(vv, type(vv), type(keytab[key][com]))
                     erromessage = f'the type of {com} value {vv} is not {type(keytab[key][com])}'
                     return erromessage
     return erromessage
@@ -86,19 +85,44 @@ def func_implement(injson):
             continue
         logger1.info("running command {}".format(line))
         part_name = list(line.keys())[0]
+        print("part_name", part_name)
         commands = line[part_name]
-        file_method = itertools.product(commands["输入数据"], commands["处理方法"])
         if part_name == "数据处理":
+            infiles = [glob.glob(os.path.join(projectpath, i2)) for i2 in commands["输入数据"]]  # 正则列出
+            infiles = list(set(itertools.chain(*infiles)))  # 展开去重
+            outdatas = funcmap[part_name](infiles, commands["处理方法"])
+            outfiles = [os.path.split(i2)[1] for i2 in infiles]  # 取文件名
             outfilehead = commands["输出前缀"]
-            for datafile, methodname in file_method:
-                funname = list(methodname.keys())[0]
-                funpara = methodname[funname]
-                outfilename = f"{outfilehead}_{datafile}"
-                logger1.info(funname, datafile, outfilename)
-                pdobj = pd.read_csv(os.path.join(projectpath, datafile), header=0, encoding="utf8")
-                outdata = funcmap[funname](pdobj, funpara)
-                print(outdata)
-                outdata.to_csv(os.path.join(projectpath, outfilename), index=False, header=None, encoding="utf-8")
+            outfiles = [os.path.join(projectpath, f"{outfilehead}_{i2}") for i2 in outfiles]
+            for fname, outdata in zip(outfiles, outdatas):
+                outdata.to_csv(fname, index=True, header=True, encoding="utf-8")
+            logger1.info(infiles, commands["处理方法"])
+        elif part_name == "序列特征":
+            infiles = [glob.glob(os.path.join(projectpath, i2)) for i2 in commands["输入数据"]]  # 正则列出
+            infiles = list(set(itertools.chain(*infiles)))  # 展开去重
+            outdatas = funcmap[part_name](infiles, commands["处理方法"])
+            # 功能名+原文件名
+            outfiles = [os.path.split(i2)[1] for i2 in infiles]  # 取文件名
+            outfileheads = [list(i2.keys())[0].replace("n", "{}_".format(list(i2.values())[0])) for i2 in
+                            commands["处理方法"]]
+            outfiles_extend = []
+            for i2 in outfiles:
+                outfiles_extend += [i3 + i2 for i3 in outfileheads]
+            outfiles_extend = [os.path.join(projectpath, i2) for i2 in outfiles_extend]
+            for fname, outdata in zip(outfiles_extend, outdatas):
+                outdata.to_csv(fname, index=True, header=True, encoding="utf-8")
+            logger1.info(infiles, commands["处理方法"])
+        elif part_name == "数据提取":
+            infiles = [glob.glob(os.path.join(projectpath, i2)) for i2 in commands["输入数据"]]  # 正则列出
+            infiles = list(set(itertools.chain(*infiles)))  # 展开去重
+            print(infiles, commands["处理方法"])
+            outdatas = funcmap[part_name](infiles, commands["处理方法"])
+            # 功能名+原文件名
+            outfiles = ["{}_{}".format(part_name, i2) for i2 in commands["处理方法"]]
+            outfiles = [os.path.join(projectpath, i2) for i2 in outfiles]
+            for fname, outdata in zip(outfiles, outdatas):
+                outdata.to_csv(fname, index=True, header=True, encoding="utf-8")
+            logger1.info(infiles, commands["处理方法"])
         elif part_name == "训练拟合":
             outfilehead = commands["输出前缀"]
             for datafile, methodname in file_method:
@@ -146,18 +170,20 @@ def func_implement(injson):
     return None
 
 
-def finish_info(filepath, use_time, runinfo):
+def finish_info(filepath, use_time, runinfo, tips_flag=False):
     " 结束通知的函数 "
+    logger1.info(f"runinfo:{runinfo}.")
     logger1.info(f"use_time:{use_time}mins.")
+    if tips_flag:
+        title = f"{filepath}完成。use_time:{use_time}mins. \n{runinfo}"
+        plt.figure(facecolor='w')
+        plt.plot([], [])
+        plt.title(title)
+        plt.show()
     return None
-    title = f"{filepath}完成。use_time:{use_time}mins. \n{runinfo}"
-    plt.figure(facecolor='w')
-    plt.plot([], [])
-    plt.title(title)
-    plt.show()
 
 
-def main(filepath):
+def main(filepath, tips_flag=False):
     " 程序框架 "
     # 1. 加载脚本
     starttime = time.time()
@@ -177,25 +203,35 @@ def main(filepath):
     runinfo = func_implement(injson)
     # 4. 完成提示
     use_time = (time.time() - starttime) / 60
-    finish_info(filepath, use_time, runinfo)
+    finish_info(filepath, use_time, runinfo, tips_flag=tips_flag)
 
 
 if __name__ == '__main__':
-    # filepath = os.path.join("demo1_script.json")
-    filepath = os.path.join("demo2_compete.json")
-    # 1. 全局日志
-    filehead = ".".join(filepath.split(".")[:-1])
-    projectpath = os.path.join(baspath, filehead)
-    datalogfile = os.path.join(projectpath, f'{filehead }.log')
+    baspath = os.path.join(".")
+    filepath = os.path.join(baspath, "demo1_script.json")
+    # 0. 项目检测
+    inhand = codecs.open(filepath, "r", "utf8")
+    incont = inhand.readlines()
+    finalstr = ""
+    for line in incont:
+        tstr = re.split('//', line)
+        finalstr += tstr[0]
+    injson = json.loads(finalstr, encoding="utf8")
+    settinginfo = [i1["项目设置"] for i1 in injson if "项目设置" in list(i1.keys())][0]
+    projectpath = settinginfo["位置"]
+    tips_flag = settinginfo["结束提示"]
     if not os.path.exists(projectpath):
-        os.makedirs(projectpath)
+        print("no project path exist, please confirm.")
+        exit()
+    # 1. 全局日志，删除旧的
+    filehead = ".".join(filepath.split(".")[:-1])
+    datalogfile = os.path.join(projectpath, f'{filehead }.log')
     if os.path.isfile(datalogfile):
         os.remove(datalogfile)
     logger1 = logging.getLogger('log')
     logger1.setLevel(logging.DEBUG)
     fh = logging.handlers.RotatingFileHandler(datalogfile, maxBytes=104857600, backupCount=10)
     ch = logging.StreamHandler()
-
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     fh.setFormatter(formatter)
     ch.setFormatter(formatter)
@@ -204,4 +240,4 @@ if __name__ == '__main__':
     logger1.addHandler(ch)
 
     # 2. 功能实现
-    main(filepath)
+    main(filepath, tips_flag=tips_flag)
