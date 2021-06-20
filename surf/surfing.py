@@ -6,7 +6,7 @@ from surf.pre_data import pre_func
 # 3. 性能统计文件
 from surf.ana_data import ana_func
 # 4. 模型训练文件
-from surf.train_data import train_func
+from surf.train_data import train_func, predict_func
 # 5. 图形展示文件
 from surf.show_data import show_func
 import matplotlib.pyplot as plt
@@ -19,6 +19,7 @@ mpl.rcParams[u'font.sans-serif'] = u'SimHei'
 mpl.rcParams[u'axes.unicode_minus'] = False
 
 projectpath = None
+logger1 = None
 
 # # 第一个是数据，第二个是处理参数
 # funcmap = {
@@ -35,6 +36,7 @@ funcmap = {}
 funcmap.update(pre_func)
 funcmap.update(ana_func)
 funcmap.update(train_func)
+funcmap.update(predict_func)
 funcmap.update(show_func)
 
 
@@ -93,49 +95,66 @@ def func_implement(injson):
             outdatas = funcmap[part_name](infiles, commands["处理方法"])
             outfiles = [os.path.split(i2)[1] for i2 in infiles]  # 取文件名
             outfilehead = commands["输出前缀"]
-            outfiles = [os.path.join(projectpath, f"{outfilehead}_{i2}") for i2 in outfiles]
+            outfiles = [os.path.join(projectpath, f"{outfilehead}{i2}") for i2 in outfiles]
             for fname, outdata in zip(outfiles, outdatas):
                 outdata.to_csv(fname, index=True, header=True, encoding="utf-8")
-            logger1.info(infiles, commands["处理方法"])
+            logger1.info("{},{}".format(infiles, commands["处理方法"]))
+        elif part_name == "训练拆分":
+            infiles = [glob.glob(os.path.join(projectpath, i2)) for i2 in commands["输入数据"]]  # 正则列出
+            infiles = list(set(itertools.chain(*infiles)))  # 展开去重
+            outdatas = funcmap[part_name](infiles, commands["处理方法"])
+            outfiles = [os.path.split(i2)[1] for i2 in infiles]  # 取文件名
+            outfilehead = commands["输出前缀"]
+            outfiles = [[os.path.join(projectpath, f"{outfilehead}train_{i2}"),
+                         os.path.join(projectpath, f"{outfilehead}valid_{i2}")] for i2 in outfiles]
+            for fname, outdata in zip(outfiles, outdatas):
+                outdata[0].to_csv(fname[0], index=True, header=True, encoding="utf-8")
+                outdata[1].to_csv(fname[1], index=True, header=True, encoding="utf-8")
+            logger1.info("{},{}".format(infiles, commands["处理方法"]))
         elif part_name == "序列特征":
             infiles = [glob.glob(os.path.join(projectpath, i2)) for i2 in commands["输入数据"]]  # 正则列出
             infiles = list(set(itertools.chain(*infiles)))  # 展开去重
             outdatas = funcmap[part_name](infiles, commands["处理方法"])
             # 功能名+原文件名
             outfiles = [os.path.split(i2)[1] for i2 in infiles]  # 取文件名
-            outfileheads = [list(i2.keys())[0].replace("n", "{}_".format(list(i2.values())[0])) for i2 in
-                            commands["处理方法"]]
-            outfiles_extend = []
-            for i2 in outfiles:
-                outfiles_extend += [i3 + i2 for i3 in outfileheads]
-            outfiles_extend = [os.path.join(projectpath, i2) for i2 in outfiles_extend]
+            outfileheads = [list(i2.keys())[0].replace("n", str(list(i2.values())[0])) for i2 in commands["处理方法"]]
+            outfiles_extend = [os.path.join(projectpath, commands["输出前缀"] + i2) for i2 in outfiles]
             for fname, outdata in zip(outfiles_extend, outdatas):
-                outdata.to_csv(fname, index=True, header=True, encoding="utf-8")
-            logger1.info(infiles, commands["处理方法"])
+                outframe = pd.DataFrame({i2[0]: i2[1].values for i2 in zip(outfileheads, outdata)},
+                                        index=outdata[0].index)
+                outframe.to_csv(fname, index=True, header=True, encoding="utf-8")
+            logger1.info("{},{}".format(infiles, commands["处理方法"]))
         elif part_name == "数据提取":
             infiles = [glob.glob(os.path.join(projectpath, i2)) for i2 in commands["输入数据"]]  # 正则列出
             infiles = list(set(itertools.chain(*infiles)))  # 展开去重
-            print(infiles, commands["处理方法"])
             outdatas = funcmap[part_name](infiles, commands["处理方法"])
             # 功能名+原文件名
-            outfiles = ["{}_{}".format(part_name, i2) for i2 in commands["处理方法"]]
+            outfiles = ["{}_{}.csv".format(part_name, i2) for i2 in commands["处理方法"]]
             outfiles = [os.path.join(projectpath, i2) for i2 in outfiles]
             for fname, outdata in zip(outfiles, outdatas):
                 outdata.to_csv(fname, index=True, header=True, encoding="utf-8")
-            logger1.info(infiles, commands["处理方法"])
+            logger1.info("{},{}".format(infiles, commands["处理方法"]))
+        elif part_name == "数据合并":
+            outdatas, outfiles = funcmap[part_name](commands["输入数据"], projectpath)
+            for fname, outdata in zip(outfiles, outdatas):
+                outdata.to_csv(fname, index=True, header=True, encoding="utf-8")
+            logger1.info(part_name)
+        elif part_name == "数据运算":
+            outdatas, outfiles = funcmap[part_name](commands["输入数据"], commands["处理方法"], projectpath)
+            # 功能名+原文件名
+            for fname, outdata in zip(outfiles, outdatas):
+                outdata.to_csv(fname, index=True, header=True, encoding="utf-8")
+            logger1.info("{},{}".format(infiles, commands["处理方法"]))
         elif part_name == "训练拟合":
-            outfilehead = commands["输出前缀"]
-            for datafile, methodname in file_method:
-                funname = list(methodname.keys())[0]
-                funpara = methodname[funname]
-                outfilename = f"{outfilehead}_{datafile}"
-                logger1.info(funname, datafile, outfilename)
-                pdobj = pd.read_csv(os.path.join(projectpath, datafile), header=0, encoding="utf8")
-                outdata = funcmap[funname](pdobj, funpara)
-                outdata.to_csv(os.path.join(projectpath, outfilename), index=False, header=None, encoding="utf-8")
-            properfilelist = commands["输出性能"]
+            outdatas = funcmap[part_name](commands["输入数据"], commands["处理方法"], commands["输出模型"], projectpath)
+            outfiles = os.path.join(projectpath, "{}loss.csv".format(commands["输出模型"]))
+            outdatas.to_csv(outfiles, index=True, header=True, encoding="utf-8")
+            logger1.info("{},{}".format(commands["输出模型"], commands["处理方法"]))
         elif part_name == "数据预测":
             outfilehead = commands["输出前缀"]
+            modelhead = commands["输入模型"]
+            infiles = [glob.glob(os.path.join(projectpath, i2)) for i2 in commands["输入数据"]]  # 正则列出
+            infiles = list(set(itertools.chain(*infiles)))  # 展开去重
             for datafile, methodname in file_method:
                 funname = list(methodname.keys())[0]
                 funpara = methodname[funname]
@@ -145,6 +164,7 @@ def func_implement(injson):
                 outdata = funcmap[funname](pdobj, funpara)
                 outdata.to_csv(os.path.join(projectpath, outfilename), index=False, header=None, encoding="utf-8")
             properfilelist = commands["输出性能"]
+            logger1.info("{}".format(commands["输出性能"]))
         elif part_name == "回测分析":
             outfilehead = commands["输出前缀"]
             for datafile, methodname in file_method:
@@ -156,6 +176,7 @@ def func_implement(injson):
                 outdata = funcmap[funname](pdobj, funpara)
                 outdata.to_csv(os.path.join(projectpath, outfilename), index=False, header=None, encoding="utf-8")
             properfilelist = commands["输出性能"]
+            logger1.info("{}".format(commands["输出性能"]))
         elif part_name == "图形展示":
             outfilehead = commands["输出后缀"]
             for datafile, methodname in file_method:
@@ -216,6 +237,7 @@ if __name__ == '__main__':
     for line in incont:
         tstr = re.split('//', line)
         finalstr += tstr[0]
+    # print(finalstr)
     injson = json.loads(finalstr, encoding="utf8")
     settinginfo = [i1["项目设置"] for i1 in injson if "项目设置" in list(i1.keys())][0]
     projectpath = settinginfo["位置"]

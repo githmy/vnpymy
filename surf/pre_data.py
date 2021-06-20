@@ -1,5 +1,6 @@
 from surf.script_tab import keytab
-import os, json, time, re, codecs
+from surf.surf_tool import regex2pairs
+import os, json, time, re, codecs, glob
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import logging.handlers
@@ -363,11 +364,12 @@ def sharp_ratio(data, base_ratio=0.0):
     return sharpratio
 
 
-class Pre_data():
+class Pre_data(object):
     def __init__(self):
         self.funcmap = {
             "种子": self.set_all_seeds,
             "填充": self.pipe_pad,
+            # 一个数组栏，一个dataframe
             "取列": self.split_columns,
             "取行": self.split_rows,
         }
@@ -423,7 +425,44 @@ class Pre_data():
         return outdata
 
 
-class SequenceChara():
+class Train_split(object):
+    def __init__(self):
+        self.funcmap = {
+            # 一个数组栏，一个dataframe
+            "拆分": self.split_train_test,
+        }
+
+    def split_train_test(self, dataobj, paras):
+        outlist = []
+        if isinstance(paras, str):
+            outlist.append(dataobj.loc[:paras])
+            outlist.append(dataobj.loc[paras:])
+        elif isinstance(paras, int):
+            outlist.append(dataobj.iloc[:paras])
+            outlist.append(dataobj.iloc[paras:])
+        elif isinstance(paras, float):
+            tsplit = len(dataobj)
+            tsplit = int(tsplit * paras)
+            outlist.append(dataobj.iloc[:tsplit])
+            outlist.append(dataobj.iloc[tsplit:])
+        else:
+            raise Exception("type error {}".format(paras))
+        return outlist
+
+    def __call__(self, infiles, commands):
+        outdata = []
+        for infile in infiles:
+            pdobj = pd.read_csv(infile, header=0, encoding="utf8")
+            pdobj.set_index("date", inplace=True)
+            # 顺序处理
+            for command in commands:
+                tkey = list(command.keys())[0]
+                pdobj = self.funcmap[tkey](pdobj, command[tkey])
+            outdata.append(pdobj)
+        return outdata
+
+
+class SequenceChara(object):
     def __init__(self):
         self.funcmap = {
             "均值n": self.mean_n,
@@ -432,14 +471,18 @@ class SequenceChara():
             "回撤n": self.draw_n,
             "最涨n": self.maxrise_n,
             "夏普n": self.sharp_n,
+            "label_最大n": self.l_max_n,
+            "label_最小n": self.l_min_n,
+            "label_回撤n": self.l_draw_n,
+            "label_最涨n": self.l_maxrise_n,
         }
 
     def mean_n(self, dataobj, n):
-        outdata = dataobj.rolling(window=n, center=False).mean()
+        outdata = dataobj["close"].rolling(window=n, center=False).mean()
         return outdata
 
     def std_n(self, dataobj, n):
-        outdata = dataobj.rolling(window=n, center=False).std()
+        outdata = dataobj["close"].rolling(window=n, center=False).std()
         return outdata
 
     def ratio_n(self, dataobj, n):
@@ -487,7 +530,27 @@ class SequenceChara():
         return maxraiseret
 
     def sharp_n(self, dataobj, n):
-        outdata = dataobj.rolling(window=n, center=False).apply(sharp_ratio)
+        outdata = dataobj["close"].rolling(window=n, center=False).apply(sharp_ratio)
+        return outdata
+
+    def l_max_n(self, dataobj, n):
+        outdata = dataobj["close"].rolling(window=n, center=False).max()
+        outdata = outdata.shift(-n)
+        return outdata
+
+    def l_min_n(self, dataobj, n):
+        outdata = dataobj["close"].rolling(window=n, center=False).min()
+        outdata.shift(-n)
+        return outdata
+
+    def l_draw_n(self, dataobj, n):
+        outdata = self.draw_n(dataobj, n)
+        outdata.shift(-n)
+        return outdata
+
+    def l_maxrise_n(self, dataobj, n):
+        outdata = self.maxrise_n(dataobj, n)
+        outdata.shift(-n)
         return outdata
 
     def __call__(self, infiles, commands):
@@ -496,14 +559,16 @@ class SequenceChara():
             pdobj = pd.read_csv(infile, header=0, encoding="utf8")
             pdobj.set_index("date", inplace=True)
             # 并行处理
+            toutd = []
             for command in commands:
                 tkey = list(command.keys())[0]
                 outobj = self.funcmap[tkey](pdobj, command[tkey])
-                outdata.append(outobj)
+                toutd.append(outobj)
+            outdata.append(toutd)
         return outdata
 
 
-class CharaExtract():
+class CharaExtract(object):
     def __init__(self):
         self.funcmap = {
             "profit_avelog": self.profit_avelog,
@@ -583,11 +648,180 @@ class CharaExtract():
         return outdatapds
 
 
+class DataMerge(object):
+    def __init__(self):
+        pass
+
+    def __call__(self, oriinfiles, projectpath):
+        # 1. 只支持 前后统配合并，去掉前后的 *
+        pdobjlist, matchstrlist = regex2pairs(oriinfiles, projectpath)
+        outfilelist = [i1[0] + "_".join(["origin" if i2 == "" else i2 for i2 in i1[1]]) + i1[2] for i1 in matchstrlist]
+        outpdobjlist = [pd.concat(i1, axis=1) for i1 in pdobjlist]
+        return outpdobjlist, outfilelist
+
+
+class DataCalc(object):
+    def __init__(self):
+        self.funcmap = {
+            "+": self.add,
+            "-": self.mins,
+            "*": self.multi,
+            "/": self.divide,
+            "**": self.ppower,
+        }
+        self.symbolmap = {
+            "+": "加",
+            "-": "减",
+            "*": "乘",
+            "/": "除",
+            "**": "幂",
+        }
+
+    def add(self, dataobj, commandstr, float_f=None, float_b=None):
+        if float_b is None and float_f is None:
+            outdata = dataobj[0].iloc[:, 0] + dataobj[1].iloc[:, 0]
+            outdata = pd.DataFrame(outdata)
+            outdata.rename(columns={0: "_".join([dataobj[0].columns[0], commandstr, dataobj[1].columns[0]])},
+                           inplace=True)
+        elif float_b is not None:
+            outdata = dataobj[0].iloc[:, 0] + float_b
+            outdata = pd.DataFrame(outdata)
+            outdata.rename(columns={0: "_".join([dataobj[0].columns[0], commandstr, str(float_b)])}, inplace=True)
+        elif float_f is not None:
+            outdata = float_f + dataobj[1].iloc[:, 0]
+            outdata = pd.DataFrame(outdata)
+            outdata.rename(columns={0: "_".join([str(float_f), commandstr, dataobj[0].columns[0]])}, inplace=True)
+        else:
+            raise Exception("No such situation.float_f float_b both not None")
+        return outdata
+
+    def mins(self, dataobj, commandstr, float_f=None, float_b=None):
+        colstrs = [dataobj[0].columns[0], dataobj[1].columns[0]]
+        if float_b is None and float_f is None:
+            outdata = dataobj[0].iloc[:, 0] - dataobj[1].iloc[:, 0]
+            outdata = pd.DataFrame(outdata)
+            outdata.rename(columns={0: "_".join([colstrs[0], commandstr, colstrs[1]])}, inplace=True)
+        elif float_b is not None:
+            outdata = dataobj[0].iloc[:, 0] - float_b
+            outdata = pd.DataFrame(outdata)
+            outdata.rename(columns={0: "_".join([dataobj[0].columns[0], commandstr, str(float_b)])}, inplace=True)
+        elif float_f is not None:
+            outdata = float_f - dataobj[1].iloc[:, 0]
+            outdata = pd.DataFrame(outdata)
+            outdata.rename(columns={0: "_".join([str(float_f), commandstr, dataobj[0].columns[0]])}, inplace=True)
+        else:
+            raise Exception("No such situation.float_f float_b both not None")
+        return outdata
+
+    def multi(self, dataobj, commandstr, float_f=None, float_b=None):
+        if float_b is None and float_f is None:
+            outdata = dataobj[0].iloc[:, 0] * dataobj[1].iloc[:, 0]
+            outdata = pd.DataFrame(outdata)
+            outdata.rename(columns={0: "_".join([dataobj[0].columns[0], commandstr, dataobj[1].columns[0]])},
+                           inplace=True)
+        elif float_b is not None:
+            outdata = dataobj[0].iloc[:, 0] * float_b
+            outdata = pd.DataFrame(outdata)
+            outdata.rename(columns={0: "_".join([dataobj[0].columns[0], commandstr, str(float_b)])}, inplace=True)
+        elif float_f is not None:
+            outdata = float_f * dataobj[1].iloc[:, 0]
+            outdata = pd.DataFrame(outdata)
+            outdata.rename(columns={0: "_".join([str(float_f), commandstr, dataobj[0].columns[0]])}, inplace=True)
+        else:
+            raise Exception("No such situation.float_f float_b both not None")
+        return outdata
+
+    def divide(self, dataobj, commandstr, float_f=None, float_b=None):
+        if float_b is None and float_f is None:
+            outdata = dataobj[1].iloc[:, 0] / dataobj[1].iloc[:, 0]
+            outdata = pd.DataFrame(outdata)
+            outdata.rename(columns={0: "_".join([dataobj[0].columns[0], commandstr, dataobj[1].columns[0]])},
+                           inplace=True)
+        elif float_b is not None:
+            outdata = dataobj[0].iloc[:, 0] / float_b
+            outdata = pd.DataFrame(outdata)
+            outdata.rename(columns={0: "_".join([dataobj[0].columns[0], commandstr, str(float_b)])}, inplace=True)
+        elif float_f is not None:
+            outdata = float_f / dataobj[1].iloc[:, 0]
+            outdata = pd.DataFrame(outdata)
+            outdata.rename(columns={0: "_".join([str(float_f), commandstr, dataobj[0].columns[0]])}, inplace=True)
+        else:
+            raise Exception("No such situation.float_f float_b both not None")
+        return outdata
+
+    def ppower(self, dataobj, commandstr, float_f=None, float_b=None):
+        if float_b is None and float_f is None:
+            outdata = dataobj[0].iloc[:, 0] ** dataobj[1].iloc[:, 0]
+            outdata = pd.DataFrame(outdata)
+            outdata.rename(columns={0: "_".join([dataobj[0].columns[0], commandstr, dataobj[1].columns[0]])},
+                           inplace=True)
+        elif float_b is not None:
+            outdata = dataobj[0].iloc[:, 0] ** float_b
+            outdata = pd.DataFrame(outdata)
+            outdata.rename(columns={0: "_".join([dataobj[0].columns[0], commandstr, str(float_b)])}, inplace=True)
+        elif float_f is not None:
+            outdata = float_f ** dataobj[1].iloc[:, 0]
+            outdata = pd.DataFrame(outdata)
+            outdata.rename(columns={0: "_".join([str(float_f), commandstr, dataobj[0].columns[0]])}, inplace=True)
+        else:
+            raise Exception("No such situation.float_f float_b both not None")
+        return outdata
+
+    def __call__(self, oriinfiles, commands, projectpath):
+        # 1. 只有两个文件
+        outfilelist = []
+        pdobjoutlist = []
+        if isinstance(oriinfiles[0], str) and isinstance(oriinfiles[1], str):
+            pdobjlist, matchstrlist = regex2pairs(oriinfiles, projectpath)
+            for command in commands:
+                for onepd, inlist in zip(pdobjlist, matchstrlist):
+                    outobj = self.funcmap[command](onepd, self.symbolmap[command], float_f=None, float_b=None)
+                    pdobjoutlist.append(outobj)
+                    outfilelist.append(
+                        inlist[0] + "_".join([inlist[1][0], self.symbolmap[command], inlist[1][1]]) + inlist[2])
+        elif isinstance(oriinfiles[0], str) and not isinstance(oriinfiles[1], str):
+            infiles = glob.glob(os.path.join(projectpath, oriinfiles[0]))
+            strip_infile = oriinfiles[0].strip("*")
+            for command in commands:
+                for infile in infiles:
+                    tfstrs = infile.split(strip_infile)
+                    newoustr = strip_infile.join(tfstrs[0:-1]) + strip_infile + "_" + self.symbolmap[command] + "_" \
+                               + str(oriinfiles[1]) + tfstrs[-1]
+                    pdobj = pd.read_csv(infile, header=0, index_col=0, encoding="utf8")
+                    outobj = self.funcmap[command]([pdobj], self.symbolmap[command], float_f=None,
+                                                   float_b=oriinfiles[1])
+                    pdobjoutlist.append(outobj)
+                    outfilelist.append(newoustr)
+        elif not isinstance(oriinfiles[0], str) and isinstance(oriinfiles[1], str):
+            infiles = glob.glob(os.path.join(projectpath, oriinfiles[1]))
+            strip_infile = oriinfiles[1].strip("*")
+            for command in commands:
+                for infile in infiles:
+                    tfstrs = infile.split(strip_infile)
+                    newoustr = strip_infile.join(tfstrs[0:-1]) + str(oriinfiles[0]) + "_" + self.symbolmap[command] \
+                               + "_" + strip_infile + tfstrs[-1]
+                    pdobj = pd.read_csv(infile, header=0, index_col=0, encoding="utf8")
+                    outobj = self.funcmap[command]([pdobj], self.symbolmap[command], float_f=oriinfiles[0],
+                                                   float_b=None)
+                    pdobjoutlist.append(outobj)
+                    outfilelist.append(newoustr)
+        else:
+            # 数之间运算无必要，忽略。
+            pass
+        return pdobjoutlist, outfilelist
+
+
 pre_func = {
     # 返回的是列
     "数据处理": Pre_data(),
     # 返回的是列
+    "训练拆分": Train_split(),
+    # 返回的是列
     "序列特征": SequenceChara(),
     # 返回的是值，汇总成一个
     "数据提取": CharaExtract(),
+    # 多个dataframe ,根据统配名 合并
+    "数据合并": DataMerge(),
+    # 多个dataframe ,根据统配名 合并
+    "数据运算": DataCalc(),
 }

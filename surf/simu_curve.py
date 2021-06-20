@@ -1003,7 +1003,7 @@ class LiveCurve(object):
             hung_json_list.append([tmp_hung_up_json, tmp_hung_dn_json])
             self.tmp_hung_up_json = {i1key: tmp_hung_up_json[i1key] + i1item for i1key, i1item in tmp_hung_up_json}
             self.tmp_hung_dn_json = {i1key: tmp_hung_dn_json[i1key] + i1item for i1key, i1item in tmp_hung_dn_json}
-        # 每个mesh求和 todo:
+        # 每个mesh求和
         for player_class in self.player_classes:
             hung_json = player_class.depos_hung(self)
             hung_json_list.append(hung_json)
