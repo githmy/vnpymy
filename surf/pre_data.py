@@ -434,17 +434,30 @@ class Train_split(object):
 
     def split_train_test(self, dataobj, paras):
         outlist = []
-        if isinstance(paras, str):
-            outlist.append(dataobj.loc[:paras])
-            outlist.append(dataobj.loc[paras:])
-        elif isinstance(paras, int):
-            outlist.append(dataobj.iloc[:paras])
-            outlist.append(dataobj.iloc[paras:])
-        elif isinstance(paras, float):
+        if isinstance(paras[0], str):
+            outlist.append(dataobj.loc[:paras[0]])
+            if len(paras) > 1:
+                outlist.append(dataobj.loc[paras[0]:paras[1]])
+                outlist.append(dataobj.loc[paras[1]:])
+            else:
+                outlist.append(dataobj.loc[paras[0]:])
+        elif isinstance(paras[0], int):
+            outlist.append(dataobj.iloc[:paras[0]])
+            if len(paras) > 1:
+                outlist.append(dataobj.iloc[paras[0]:paras[1]])
+                outlist.append(dataobj.iloc[paras[1]:])
+            else:
+                outlist.append(dataobj.iloc[paras[0]:])
+        elif isinstance(paras[0], float):
             tsplit = len(dataobj)
-            tsplit = int(tsplit * paras)
-            outlist.append(dataobj.iloc[:tsplit])
-            outlist.append(dataobj.iloc[tsplit:])
+            tsplit1 = int(tsplit * paras[0])
+            outlist.append(dataobj.iloc[:tsplit1])
+            if len(paras) > 1:
+                tsplit2 = int(tsplit * sum(paras))
+                outlist.append(dataobj.iloc[tsplit1:tsplit2])
+                outlist.append(dataobj.iloc[tsplit2:])
+            else:
+                outlist.append(dataobj.iloc[tsplit1:])
         else:
             raise Exception("type error {}".format(paras))
         return outlist
@@ -478,15 +491,15 @@ class SequenceChara(object):
         }
 
     def mean_n(self, dataobj, n):
-        outdata = dataobj["close"].rolling(window=n, center=False).mean()
+        outdata = dataobj.iloc[:, 0].rolling(window=n, center=False).mean()
         return outdata
 
     def std_n(self, dataobj, n):
-        outdata = dataobj["close"].rolling(window=n, center=False).std()
+        outdata = dataobj.iloc[:, 0].rolling(window=n, center=False).std()
         return outdata
 
     def ratio_n(self, dataobj, n):
-        outdata = dataobj["close"].rolling(window=n, center=False).apply(lambda x: x[-1] / x[0])
+        outdata = dataobj.iloc[:, 0].rolling(window=n, center=False).apply(lambda x: x[-1] / x[0])
         return outdata
 
     def draw_n(self, dataobj, n):
@@ -530,16 +543,16 @@ class SequenceChara(object):
         return maxraiseret
 
     def sharp_n(self, dataobj, n):
-        outdata = dataobj["close"].rolling(window=n, center=False).apply(sharp_ratio)
+        outdata = dataobj.iloc[:, 0].rolling(window=n, center=False).apply(sharp_ratio)
         return outdata
 
     def l_max_n(self, dataobj, n):
-        outdata = dataobj["close"].rolling(window=n, center=False).max()
+        outdata = dataobj.iloc[:, 0].rolling(window=n, center=False).max()
         outdata = outdata.shift(-n)
         return outdata
 
     def l_min_n(self, dataobj, n):
-        outdata = dataobj["close"].rolling(window=n, center=False).min()
+        outdata = dataobj.iloc[:, 0].rolling(window=n, center=False).min()
         outdata.shift(-n)
         return outdata
 
@@ -555,9 +568,12 @@ class SequenceChara(object):
 
     def __call__(self, infiles, commands):
         outdata = []
+        colhead = []
         for infile in infiles:
             pdobj = pd.read_csv(infile, header=0, encoding="utf8")
             pdobj.set_index("date", inplace=True)
+            delhead = pdobj.columns[0]
+            colhead.append(delhead)
             # 并行处理
             toutd = []
             for command in commands:
@@ -565,7 +581,7 @@ class SequenceChara(object):
                 outobj = self.funcmap[tkey](pdobj, command[tkey])
                 toutd.append(outobj)
             outdata.append(toutd)
-        return outdata
+        return outdata, colhead
 
 
 class CharaExtract(object):

@@ -1,3 +1,4 @@
+# coding: utf-8
 from surf.script_tab import keytab
 import os, json, time, re, codecs, glob
 from surf.surf_tool import regex2pairs
@@ -82,6 +83,8 @@ class TrainFunc(object):
             model = lgb.train(params, lgtrain, 1000, valid_sets=lgval, early_stopping_rounds=100,
                               verbose_eval=100, evals_result=evals_result)
             fulpath = os.path.join(projectpath, "{}lgboost_{}.txt".format(outhead, i1))
+            print("saving ", i1)
+            print(fulpath)
             model.save_model(fulpath)
             # fig2 = plt.figure(figsize=(20, 20))
             # ax = fig2.subplots()
@@ -127,36 +130,48 @@ class PredictFunc(object):
             # "tabnet": None,
         }
 
-    def lgboost(self, dataobjs, params, outhead, projectpath):
-        # todo: 预测，模型自定义，策略; 回测
-        test_X = []
-        for ttest in dataobjs:
-            ttest.dropna(axis=0, how='any', thresh=None, subset=None, inplace=True)
-            test_X.append(ttest.values)
-        test_X = np.concatenate(test_X, axis=0)
-        # 模型加载
-        # todo: 统配得出 collabel
-        for id1, i1 in enumerate(collabel):
-            print("training:", i1)
-            fulpath = os.path.join(projectpath, "{}lgboost_{}.txt".format(outhead, i1))
-        model = lgb.Booster(model_file=fulpath)
-        # 如果在训练期间启用了早期停止，可以通过best_iteration方式从最佳迭代中获得预测
-        pred_test_y = model.predict(test_X, num_iteration=model.best_iteration)
-        return pred_test_y
+    def lgboost(self, dataobj, modelhead, labelname, projectpath):
+        outpdlist = []
+        for i1 in labelname:
+            # 模型加载
+            modelpath = os.path.join(projectpath, "{}lgboost_{}.txt".format(modelhead, i1))
+            try:
+                model = lgb.Booster(model_file=modelpath)
+                # 如果在训练期间启用了早期停止，可以通过best_iteration方式从最佳迭代中获得预测
+                pred_pd = model.predict(dataobj, num_iteration=model.best_iteration)
+                outpdlist.append(pred_pd)
+            except Exception as e:
+                outpdlist.append(np.zeros(len(dataobj)))
+                print(e)
+        return outpdlist
 
-    def __call__(self, oriinfiles, commands, outhead, projectpath):
-        # 1. 只有两个文件
-        print(oriinfiles, commands, outhead, projectpath)
-        pdobjlist, matchstrlist = regex2pairs(oriinfiles, projectpath)
-        outfilelist = [[i1[0] + i1[1][0] + i1[2], i1[0] + i1[1][1] + i1[2]] for i1 in matchstrlist]
-        print(outfilelist)
-        outjson = {}
-        for command in commands:
-            tkey = list(command.keys())[0]
-            outjson[command] = self.funcmap[tkey](pdobjlist, command[tkey], outhead, projectpath)
-        pdobjout = pd.DataFrame(outjson)
-        print(pdobjout)
-        return pdobjout
+    def __call__(self, oriinfiles, modelhead, commands, outhead, labelfile, projectpath):
+        # todo: 预测，模型自定义，策略; 回测
+        print(oriinfiles, commands, outhead, labelfile, projectpath)
+        anylabel = glob.glob(os.path.join(projectpath, labelfile))[0]
+        pdobj = pd.read_csv(os.path.join(projectpath, anylabel), header=0, encoding="utf8")
+        pdobj.set_index("date", inplace=True)
+        labelname = [i1 for i1 in pdobj.columns if re.search("^label_", i1, re.M)]
+        labellenth = len(labelname)
+        infiles = [glob.glob(os.path.join(projectpath, i2)) for i2 in oriinfiles]  # 正则列出
+        infiles = list(set(itertools.chain(*infiles)))  # 展开去重
+        for infile in infiles:
+            # 为了便于集成学习，不同模型的同一类型存储到一个文件
+            pdobj = pd.read_csv(infile, header=0, encoding="utf8")
+            pdobj.set_index("date", inplace=True)
+            pdobj = pdobj[[i3 for i3 in pdobj.columns if not re.search("^label_", i3, re.M)]]
+            tpdlist = [[] for i2 in range(labellenth)]
+            comkeys = [list(i2.keys())[0] for i2 in commands]
+            for tkey in comkeys:
+                outpdlist = self.funcmap[tkey](pdobj, modelhead, labelname, projectpath)
+                [tpdlist[i3].append(outpdlist[i3]) for i3 in range(labellenth)]
+            for id2, lbname in enumerate(labelname):
+                tjson = {"{}_{}".format(lbname, tkey): tpdlist[id2][id3] for id3, tkey in enumerate(comkeys)}
+                tmpoutpd = pd.DataFrame(tjson, index=pdobj.index)
+                (filepath, tfilename) = os.path.split(infile)
+                fname = os.path.join(filepath, "{}{}_{}".format(outhead, lbname, tfilename))
+                tmpoutpd.to_csv(fname, index=True, header=True, encoding="utf-8")
+        return None
 
 
 train_func = {
