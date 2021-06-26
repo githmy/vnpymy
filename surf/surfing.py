@@ -8,7 +8,9 @@ from surf.pre_data import pre_func
 from surf.ana_data import ana_func
 # 4. 模型训练文件
 from surf.train_data import train_func, predict_func
-# 5. 图形展示文件
+# 5. 回测文件
+from surf.back_strategy import back_func
+# 6. 图形展示文件
 from surf.show_data import show_func
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -38,6 +40,7 @@ funcmap.update(pre_func)
 funcmap.update(ana_func)
 funcmap.update(train_func)
 funcmap.update(predict_func)
+funcmap.update(back_func)
 funcmap.update(show_func)
 funcmap.update({"中止": None})
 
@@ -53,6 +56,7 @@ def check_keytab(injson):
             funckey = keytab[key].keys()
             for com, vv in val.items():
                 if com not in funckey:
+                    print(linejson, com, funckey)
                     erromessage = f'{com} not in {keytab[com]}'
                     return erromessage
                 if not isinstance(vv, type(keytab[key][com])):
@@ -155,6 +159,9 @@ def func_implement(injson):
             for fname, outdata in zip(outfiles, outdatas):
                 outdata.to_csv(fname, index=True, header=True, encoding="utf-8")
             logger1.info(part_name)
+        elif part_name == "数据复制":
+            funcmap[part_name](commands["输入数据"], commands["输入前缀"], projectpath)
+            logger1.info(part_name)
         elif part_name == "数据运算":
             outdatas, outfiles = funcmap[part_name](commands["输入数据"], commands["处理方法"], projectpath)
             # 功能名+原文件名
@@ -171,29 +178,19 @@ def func_implement(injson):
                                commands["输出前缀"], commands["标签文件"], projectpath)
             logger1.info("数据预测完成")
         elif part_name == "回测分析":
-            raise 555
-            outfilehead = commands["输出前缀"]
-            for datafile, methodname in file_method:
-                funname = list(methodname.keys())[0]
-                funpara = methodname[funname]
-                outfilename = f"{outfilehead}_{datafile}"
-                logger1.info(funname, datafile, outfilename)
-                pdobj = pd.read_csv(os.path.join(projectpath, datafile), header=0, encoding="utf8")
-                outdata = funcmap[funname](pdobj, funpara)
-                outdata.to_csv(os.path.join(projectpath, outfilename), index=False, header=None, encoding="utf-8")
-            properfilelist = commands["输出性能"]
-            logger1.info("{}".format(commands["输出性能"]))
+            infiles = [glob.glob(os.path.join(projectpath, i2)) for i2 in commands["输入数据"]]  # 正则列出
+            infiles = list(set(itertools.chain(*infiles)))  # 展开去重
+            funcmap[part_name](infiles, commands["处理方法"], commands["输出前缀"])
+            logger1.info("回测完成！")
         elif part_name == "图形展示":
-            outfilehead = commands["输出后缀"]
-            for datafile, methodname in file_method:
-                funname = list(methodname.keys())[0]
-                funpara = methodname[funname]
-                outfilename = f"{outfilehead}_{datafile}"
-                logger1.info(funname, datafile, outfilename)
-                pdobj = pd.read_csv(os.path.join(projectpath, datafile), header=0, encoding="utf8")
-                funcmap[funname](pdobj, funpara)
+            try:
+                sbfix = commands["输出后缀"]
+            except Exception as e:
+                sbfix = None
+            funcmap[part_name](commands["处理方法"], projectpath, sbfix, commands["静默模式"])
+            logger1.info("展示完成！")
         else:
-            pass
+            raise Exception("unknow keywords {}".format(part_name))
     return None
 
 
@@ -243,7 +240,6 @@ if __name__ == '__main__':
     for line in incont:
         tstr = re.split('//', line)
         finalstr += tstr[0]
-    # print(finalstr)
     injson = json.loads(finalstr, encoding="utf8")
     settinginfo = [i1["项目设置"] for i1 in injson if "项目设置" in list(i1.keys())][0]
     projectpath = settinginfo["位置"]

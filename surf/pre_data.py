@@ -1,6 +1,6 @@
 from surf.script_tab import keytab
 from surf.surf_tool import regex2pairs
-import os, json, time, re, codecs, glob
+import os, json, time, re, codecs, glob, shutil
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import logging.handlers
@@ -676,6 +676,19 @@ class DataMerge(object):
         return outpdobjlist, outfilelist
 
 
+class DataCopy(object):
+    def __init__(self):
+        pass
+
+    def __call__(self, oriinfiles, prefix, projectpath):
+        infiles = [glob.glob(os.path.join(projectpath, i2)) for i2 in oriinfiles]
+        infiles = set(itertools.chain(*infiles))  # 展开去重
+        for infile in infiles:
+            (filepath, ofile) = os.path.split(infile)
+            shutil.copy(infile, os.path.join(filepath, prefix + ofile))
+        return None
+
+
 class DataCalc(object):
     def __init__(self):
         self.funcmap = {
@@ -838,6 +851,7 @@ pre_func = {
     "数据提取": CharaExtract(),
     # 多个dataframe ,根据统配名 合并
     "数据合并": DataMerge(),
+    "数据复制": DataCopy(),
     # 多个dataframe ,根据统配名 合并
     "数据运算": DataCalc(),
 }
