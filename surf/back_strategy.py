@@ -13,12 +13,13 @@ import ffn
 
 
 class BackFunc(object):
-    # todo: 模型自定义，回测
+    # todo: enforce 需要分2部分，预测在当前，训练在训练模块。，回测
 
     def __init__(self):
         """各策略：只输出 close、比重、是否操作标记"""
         self.funcmap = {
             "cross": self.cross,
+            "enforce": self.cross,
             "turtle": None,
         }
 

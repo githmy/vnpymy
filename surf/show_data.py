@@ -2,13 +2,46 @@ from surf.script_tab import keytab
 import os, json, time, re, codecs, glob
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-import logging.handlers
+import seaborn as sns
 import pandas as pd
 import itertools
 import mplfinance as mpf
 import numpy as np
 
 mpl.use('TkAgg')
+
+
+# 显示区间密度
+def range_density(pdseri, headstr="", subfix="png", x_show_n=30, silence=0):
+    plt.figure(figsize=(12, 8))
+    # sns.distplot(pdseri.values, bins=x_show_n, kde=False, color="red")
+    # 核密度估计 + 统计柱状图
+    sns.distplot(pdseri.dropna(), bins=x_show_n)
+    # # 核密度估计
+    # sns.kdeplot(pdseri.dropna())
+    # # 两支股票的皮尔森相关系数
+    plt.title(headstr)
+    # plt.xlabel('Loyalty score', fontsize=12)
+    if subfix is not None or subfix != "":
+        picfile = ".".join(headstr.split(".")[:-1] + [subfix])
+        plt.savefig(picfile)
+    if silence == 0:
+        plt.show()
+
+
+# 不同特征数值 的 方差分布
+def chara_diffval_std(pdobj, headstr="", subfix="png", silence=0):
+    plt.figure(figsize=(8, 4))
+    sns.violinplot(x="features", y="values", data=pdobj)
+    plt.title(headstr)
+    # plt.xlabel('Feature 3', fontsize=12)
+    # plt.ylabel('Loyalty score', fontsize=12)
+    plt.xticks(rotation='vertical')
+    if subfix is not None or subfix != "":
+        picfile = ".".join(headstr.split(".")[:-1] + [subfix])
+        plt.savefig(picfile)
+    if silence == 0:
+        plt.show()
 
 
 def plot_stock_sig(pddatas, datals, sigs, headstr=""):
@@ -74,10 +107,6 @@ class DataShow(object):
             "回测统计": self.show_backstatic,
         }
 
-    def show_statics(self, infile, subfix, x_show_n=30, silence=0):
-        pdobj = pd.read_csv(infile, header=0, index_col="date", encoding="utf8")
-        plot_curve(pdobj, headstr=infile, subfix=subfix, x_show_n=x_show_n, silence=silence)
-
     def show_charas(self, infile, subfix, x_show_n=30, silence=0):
         pdobj = pd.read_csv(infile, header=0, index_col="date", encoding="utf8")
         plot_curve(pdobj, headstr=infile, subfix=subfix, x_show_n=x_show_n, silence=silence)
@@ -88,7 +117,6 @@ class DataShow(object):
         pdobj.index = pd.to_datetime(pdobj.index)
         pdobj = pdobj.iloc[0:100, :]
         candle_col = ["high", "low", "close", "open", "volume"]
-        # dataasis = [pdobj[i1] for i1 in pdobj.columns if re.search("^ma", i1)]
         # raise 33 生成多列
         sig_cols = [i1 for i1 in pdobj.columns if re.search("oper_sig$", i1)]
         strategyhead = [i1.replace("oper_sig", "") for i1 in sig_cols]
@@ -97,11 +125,6 @@ class DataShow(object):
             dataasis = [pdobj[wealthcol] * pdobj["close"][0]]
             sig_col = "{}oper_sig".format(headname)
             ratio_col = "{}oper_ratio".format(headname)
-            # pdobj["sig"] = np.nan
-            # pdobj["ub"] = np.nan
-            # pdobj["us"] = np.nan
-            # pdobj["db"] = np.nan
-            # pdobj["ds"] = np.nan
             pdobj["ub"] = 0
             pdobj["us"] = 0
             pdobj["db"] = 0
@@ -136,9 +159,25 @@ class DataShow(object):
             plot_stock_sig(pdobj[candle_col], dataasis, pdobj[udsig], headstr=infile + headname)
 
     def show_backstatic(self, infile, subfix, x_show_n=30, silence=0):
-        print(infile)
-        pdobj = pd.read_csv(infile, header=0, index_col="date", encoding="utf8")
-        plot_curve(pdobj, headstr=infile, subfix=subfix, x_show_n=x_show_n, silence=silence)
+        filehead = ".".join(infile.split(".")[:-1])
+        pdobj = pd.read_csv(infile, header=0, index_col="filename", encoding="utf8")
+        strategyhead = [i1 for i1 in pdobj.columns if re.search("年化$", i1)]
+        strategyhead = [i1.replace("年化", "") for i1 in strategyhead]
+        # 只画4张图
+        feath_sufix = ["年化", "累计", "回撤", "夏普"]
+        for feathname in feath_sufix:
+            tpdlist = []
+            for strate in strategyhead:
+                headstr = filehead + strate + feathname + "."
+                range_density(pdobj[strate + feathname], headstr=headstr, subfix=subfix, x_show_n=x_show_n,
+                              silence=silence)
+                tpd = pdobj[[strate + feathname]]
+                tpd.columns = ["values"]
+                tpd["features"] = strate + feathname
+                tpdlist.append(tpd)
+            showpd = pd.concat(tpdlist, axis=0)
+            headstr = filehead + feathname + "."
+            chara_diffval_std(showpd, headstr=headstr, subfix=subfix, silence=silence)
 
     def __call__(self, deal_content, projectpath, subfix, silence):
         for tkey in deal_content:
