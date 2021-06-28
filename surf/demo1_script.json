@@ -12,10 +12,10 @@
       //      "功能名": "数据合并",
       //      "功能名": "数据复制",
       //      "功能名": "训练拆分",
-      //      "功能名": "训练拟合",
+      "功能名": "训练拟合",
       //      "功能名": "数据预测",
       //      "功能名": "回测分析",
-      "功能名": "图形展示",
+      //      "功能名": "图形展示",
       "预清空": 1,
       "排序号": 1
     }
@@ -184,6 +184,26 @@
       ],
       "处理方法": [
         {
+          "enforce_net": {
+            "strategy_name": "strategy_enforce_net1",
+            "charas": [
+              "close",
+              "volume"
+            ],
+            "win": 15
+          }
+        },
+        {
+          "enforce_tab": {
+            "strategy_name": "strategy_enforce_tab1",
+            "charas": [
+              "close",
+              "volume"
+            ],
+            "win": 2
+          }
+        },
+        {
           "lgboost": {
             "objective": "regression",
             "metric": "rmse",
@@ -205,6 +225,9 @@
     }
   },
   {
+    "中止": {}
+  },
+  {
     "数据预测": {
       "输入数据": [
         "split3_test_*"
@@ -212,6 +235,26 @@
       "输入模型": "model3_",
       "标签文件": "split3_valid_*",
       "处理方法": [
+        {
+          "enforce_net": {
+            "strategy_name": "strategy_enforce_net1",
+            "charas": [
+              "close",
+              "volume"
+            ],
+            "win": 15
+          }
+        },
+        {
+          "enforce_tab": {
+            "strategy_name": "strategy_enforce_tab1",
+            "charas": [
+              "close",
+              "volume"
+            ],
+            "win": 2
+          }
+        },
         {
           "lgboost": null
         }
@@ -226,16 +269,23 @@
       ],
       "处理方法": [
         {
-          "enforce": {
-            "strategy_name": "strategy_enforce1",
-            "close": [
-              5,
-              10
+          "enforce_net": {
+            "strategy_name": "strategy_enforce_net1",
+            "charas": [
+              "close",
+              "volume"
             ],
-            "volume": [
-              5,
-              10
-            ]
+            "win": 15
+          }
+        },
+        {
+          "enforce_tab": {
+            "strategy_name": "strategy_enforce_tab1",
+            "charas": [
+              "close",
+              "volume"
+            ],
+            "win": 2
           }
         },
         {

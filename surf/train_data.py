@@ -15,9 +15,18 @@ class TrainFunc(object):
     def __init__(self):
         self.funcmap = {
             "lgboost": self.lgboost,
+            "enforce_tab": self.enforce_tabf,
+            "enforce_net": self.enforce_netf,
             # "tcn": None,
             # "tabnet": None,
         }
+    def enforce_tabf(self, dataobjs, params, outhead, projectpath):
+        pass
+        return loss_result
+
+    def enforce_netf(self, dataobjs, params, outhead, projectpath):
+        pass
+        return loss_result
 
     def lgboost(self, dataobjs, params, outhead, projectpath):
         train_X = []
